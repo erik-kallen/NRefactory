@@ -1,3 +1,7 @@
 /lib/*.dll
 /ICSharpCode.NRefactory.Tests/PartCover/*
 _ReSharper*/*
+
+*.csproj.user
+NRefactory.sln.DotSettings.user
+NRefactory.suo

@@ -26,7 +26,7 @@ namespace Mono.CSharp
 	/// <summary>
 	///    The compiler driver.
 	/// </summary>
-	class Driver
+	public class Driver
 	{
 		readonly CompilerContext ctx;
 
