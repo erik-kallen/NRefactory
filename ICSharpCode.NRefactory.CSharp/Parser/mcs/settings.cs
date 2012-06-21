@@ -113,6 +113,11 @@ namespace Mono.CSharp {
 		//
 		public string OutputFile;
 
+		//
+		// Output assembly name
+		//
+		public string AssemblyName;
+
 		// 
 		// The default compiler checked state
 		//

@@ -78,7 +78,7 @@ namespace Mono.CSharp
 		protected AssemblyDefinition (ModuleContainer module, string name)
 		{
 			this.module = module;
-			this.name = Path.GetFileNameWithoutExtension (name);
+			this.name = name;
 
 			wrap_non_exception_throws = true;
 
