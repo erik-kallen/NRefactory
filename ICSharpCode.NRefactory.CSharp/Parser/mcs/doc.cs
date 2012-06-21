@@ -587,7 +587,7 @@ namespace Mono.CSharp
 		//
 		// Outputs XML documentation comment from tokenized comments.
 		//
-		public bool OutputDocComment (string asmfilename, string xmlFileName)
+		public bool OutputDocComment (string asmname, string xmlFileName)
 		{
 			XmlTextWriter w = null;
 			try {
@@ -598,7 +598,7 @@ namespace Mono.CSharp
 				w.WriteStartElement ("doc");
 				w.WriteStartElement ("assembly");
 				w.WriteStartElement ("name");
-				w.WriteString (Path.GetFileNameWithoutExtension (asmfilename));
+				w.WriteString (asmname);
 				w.WriteEndElement (); // name
 				w.WriteEndElement (); // assembly
 				w.WriteStartElement ("members");

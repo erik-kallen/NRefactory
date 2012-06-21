@@ -267,12 +267,16 @@ namespace Mono.CSharp
 				}
 			}
 
+			string assembly_name = settings.AssemblyName;
+			if (string.IsNullOrEmpty(assembly_name))
+				assembly_name = Path.GetFileNameWithoutExtension(output_file_name);
+
 #if STATIC
 			var importer = new StaticImporter (module);
 			var references_loader = new StaticLoader (importer, ctx);
 
 			tr.Start (TimeReporter.TimerType.AssemblyBuilderSetup);
-			var assembly = new AssemblyDefinitionStatic (module, references_loader, output_file_name, output_file);
+			var assembly = new AssemblyDefinitionStatic (module, references_loader, assembly_name, output_file);
 			assembly.Create (references_loader.Domain);
 			tr.Stop (TimeReporter.TimerType.AssemblyBuilderSetup);
 
@@ -295,7 +299,7 @@ namespace Mono.CSharp
 
 			references_loader.LoadModules (assembly, module.GlobalRootNamespace);
 #else
-			var assembly = new AssemblyDefinitionDynamic (module, output_file_name, output_file);
+			var assembly = new AssemblyDefinitionDynamic (module, assembly_name, output_file);
 			module.SetDeclaringAssembly (assembly);
 
 			var importer = new ReflectionImporter (module, ctx.BuiltinTypes);
@@ -325,7 +329,7 @@ namespace Mono.CSharp
 
 			if (settings.DocumentationFile != null) {
 				var doc = new DocumentationBuilder (module);
-				doc.OutputDocComment (output_file, settings.DocumentationFile);
+				doc.OutputDocComment (assembly_name, settings.DocumentationFile);
 			}
 
 			assembly.Resolve ();
