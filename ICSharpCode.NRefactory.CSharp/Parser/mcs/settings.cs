@@ -229,7 +229,11 @@ namespace Mono.CSharp {
 				return source_files;
 			}
 		}
-
+		
+		public IList<string> ConditionalSymbols {
+			get { return conditional_symbols; }
+		}
+		
 		#endregion
 
 		public void AddConditionalSymbol (string symbol)
