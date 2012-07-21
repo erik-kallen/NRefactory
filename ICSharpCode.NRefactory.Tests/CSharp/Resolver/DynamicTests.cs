@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using ICSharpCode.NRefactory.Semantics;
 using ICSharpCode.NRefactory.TypeSystem;
@@ -37,16 +38,16 @@ class TestClass {
 }";
 			var rr = Resolve<DynamicInvocationResolveResult>(program);
 			Assert.That(rr.Type.Kind, Is.EqualTo(TypeKind.Dynamic));
-			Assert.That(rr.IsIndexing, Is.False);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Invocation));
 			Assert.That(rr.Target, Is.InstanceOf<DynamicMemberResolveResult>());
 			var dynamicMember = (DynamicMemberResolveResult)rr.Target;
 			Assert.That(dynamicMember.Target is LocalResolveResult && ((LocalResolveResult)dynamicMember.Target).Variable.Name == "obj");
 			Assert.That(dynamicMember.Member, Is.EqualTo("SomeMethod"));
 			Assert.That(rr.Arguments.Count, Is.EqualTo(2));
 			Assert.That(rr.Arguments[0].Name, Is.Null);
-			Assert.That(rr.Arguments[0].Value is ConversionResolveResult && ((ConversionResolveResult)rr.Arguments[0].Value).Input is LocalResolveResult && ((LocalResolveResult)((ConversionResolveResult)rr.Arguments[0].Value).Input).Variable.Name == "a");
+			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "a");
 			Assert.That(rr.Arguments[1].Name, Is.Null);
-			Assert.That(rr.Arguments[1].Value is ConversionResolveResult && ((ConversionResolveResult)rr.Arguments[1].Value).Input is LocalResolveResult && ((LocalResolveResult)((ConversionResolveResult)rr.Arguments[1].Value).Input).Variable.Name == "b");
+			Assert.That(rr.Arguments[1].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[1].Value).Variable.Name == "b");
 		}
 
 		[Test]
@@ -62,18 +63,18 @@ class TestClass {
 }";
 			var rr = Resolve<DynamicInvocationResolveResult>(program);
 			Assert.That(rr.Type.Kind, Is.EqualTo(TypeKind.Dynamic));
-			Assert.That(rr.IsIndexing, Is.False);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Invocation));
 			Assert.That(rr.Target, Is.InstanceOf<DynamicMemberResolveResult>());
 			var dynamicMember = (DynamicMemberResolveResult)rr.Target;
 			Assert.That(dynamicMember.Target is LocalResolveResult && ((LocalResolveResult)dynamicMember.Target).Variable.Name == "obj");
 			Assert.That(dynamicMember.Member, Is.EqualTo("SomeMethod"));
 			Assert.That(rr.Arguments.Count, Is.EqualTo(3));
 			Assert.That(rr.Arguments[0].Name, Is.Null);
-			Assert.That(rr.Arguments[0].Value is ConversionResolveResult && ((ConversionResolveResult)rr.Arguments[0].Value).Input is LocalResolveResult && ((LocalResolveResult)((ConversionResolveResult)rr.Arguments[0].Value).Input).Variable.Name == "x");
+			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "x");
 			Assert.That(rr.Arguments[1].Name, Is.EqualTo("param1"));
-			Assert.That(rr.Arguments[1].Value is ConversionResolveResult && ((ConversionResolveResult)rr.Arguments[1].Value).Input is LocalResolveResult && ((LocalResolveResult)((ConversionResolveResult)rr.Arguments[1].Value).Input).Variable.Name == "a");
+			Assert.That(rr.Arguments[1].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[1].Value).Variable.Name == "a");
 			Assert.That(rr.Arguments[2].Name, Is.EqualTo("param2"));
-			Assert.That(rr.Arguments[2].Value is ConversionResolveResult && ((ConversionResolveResult)rr.Arguments[2].Value).Input is LocalResolveResult && ((LocalResolveResult)((ConversionResolveResult)rr.Arguments[2].Value).Input).Variable.Name == "b");
+			Assert.That(rr.Arguments[2].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[2].Value).Variable.Name == "b");
 		}
 
 		[Test]
@@ -88,20 +89,20 @@ class TestClass {
 }";
 			var rr = Resolve<DynamicInvocationResolveResult>(program);
 			Assert.That(rr.Type.Kind, Is.EqualTo(TypeKind.Dynamic));
-			Assert.That(rr.IsIndexing, Is.False);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Invocation));
 			Assert.That(rr.Target, Is.InstanceOf<DynamicInvocationResolveResult>());
 			var innerInvocation = (DynamicInvocationResolveResult)rr.Target;
 			Assert.That(innerInvocation.Target, Is.InstanceOf<DynamicMemberResolveResult>());
 			var dynamicMember = (DynamicMemberResolveResult)innerInvocation.Target;
 			Assert.That(dynamicMember.Target is LocalResolveResult && ((LocalResolveResult)dynamicMember.Target).Variable.Name == "obj");
 			Assert.That(dynamicMember.Member, Is.EqualTo("SomeMethod"));
-			Assert.That(innerInvocation.IsIndexing, Is.False);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Invocation));
 			Assert.That(innerInvocation.Arguments.Count, Is.EqualTo(1));
 			Assert.That(innerInvocation.Arguments[0].Name, Is.Null);
-			Assert.That(innerInvocation.Arguments[0].Value is ConversionResolveResult && ((ConversionResolveResult)innerInvocation.Arguments[0].Value).Input is LocalResolveResult && ((LocalResolveResult)((ConversionResolveResult)innerInvocation.Arguments[0].Value).Input).Variable.Name == "a");
+			Assert.That(innerInvocation.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)innerInvocation.Arguments[0].Value).Variable.Name == "a");
 			Assert.That(rr.Arguments.Count, Is.EqualTo(1));
 			Assert.That(rr.Arguments[0].Name, Is.Null);
-			Assert.That(rr.Arguments[0].Value is ConversionResolveResult && ((ConversionResolveResult)rr.Arguments[0].Value).Input is LocalResolveResult && ((LocalResolveResult)((ConversionResolveResult)rr.Arguments[0].Value).Input).Variable.Name == "b");
+			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "b");
 		}
 
 		[Test]
@@ -128,6 +129,65 @@ class TestClass {
 		}
 
 		[Test]
+		public void InvocationWithDynamicArgumentWhenBothAnOwnAndABaseMethodAreApplicable() {
+			string program = @"using System;
+class TestBase {
+	public void SomeMethod(int a) {}
+}
+
+class TestClass : TestBase {
+	public void SomeMethod(string a) {}
+	public void SomeMethod(string a, int b) {}
+
+	void F() {
+		dynamic obj = null;
+		var x = $this.SomeMethod(obj)$;
+	}
+}";
+			var rr = Resolve<DynamicInvocationResolveResult>(program);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Invocation));
+
+			var mg = rr.Target as MethodGroupResolveResult;
+			Assert.That(mg, Is.Not.Null, "Expected a MethodGroup");
+			Assert.That(mg.TargetResult, Is.InstanceOf<ThisResolveResult>());
+			Assert.That(mg.MethodName, Is.EqualTo("SomeMethod"));
+			Assert.That(mg.Methods.Count(), Is.EqualTo(2));
+			Assert.That(mg.Methods.Any(m => m.Parameters.Count == 1 && m.DeclaringType.Name == "TestBase" && m.Name == "SomeMethod" && m.Parameters[0].Type.Name == "Int32"));
+			Assert.That(mg.Methods.Any(m => m.Parameters.Count == 1 && m.DeclaringType.Name == "TestClass" && m.Name == "SomeMethod" && m.Parameters[0].Type.Name == "String"));
+
+			Assert.That(rr.Arguments.Count, Is.EqualTo(1));
+			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "obj");
+		}
+
+		[Test, Ignore("Fails")]
+		public void InvocationWithDynamicArgumentWhenABaseMethodIsShadowed() {
+			string program = @"using System;
+class TestBase {
+	public void SomeMethod(int a) {}
+}
+
+class TestClass : TestBase {
+	public void SomeMethod(int a) {}
+	public void SomeMethod(string a, int b) {}
+
+	void F() {
+		dynamic obj = null;
+		var x = $this.SomeMethod(obj)$;
+	}
+}";
+			var rr = Resolve<CSharpInvocationResolveResult>(program);
+			Assert.That(rr.Member.Name, Is.EqualTo("SomeMethod"));
+			Assert.That(rr.Member.DeclaringType.Name, Is.EqualTo("TestClass"));
+			Assert.That(((IParameterizedMember)rr.Member).Parameters.Count, Is.EqualTo(1));
+			Assert.That(rr.Arguments.Count, Is.EqualTo(1));
+			var cr = rr.Arguments[0] as ConversionResolveResult;
+			Assert.That(cr, Is.Not.Null);
+			Assert.That(cr.Conversion.IsImplicit, Is.True);
+			Assert.That(cr.Conversion.IsDynamicConversion, Is.True);
+			Assert.That(cr.Input is LocalResolveResult && ((LocalResolveResult)cr.Input).Variable.Name == "obj");
+		}
+
+		[Test]
 		public void InvocationWithDynamicArgumentWithTwoApplicableMethods() {
 			string program = @"using System;
 class TestClass {
@@ -141,7 +201,7 @@ class TestClass {
 	}
 }";
 			var rr = Resolve<DynamicInvocationResolveResult>(program);
-			Assert.That(rr.IsIndexing, Is.False);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Invocation));
 
 			var mg = rr.Target as MethodGroupResolveResult;
 			Assert.That(mg, Is.Not.Null, "Expected a MethodGroup");
@@ -169,7 +229,7 @@ class TestClass {
 	}
 }";
 			var rr = Resolve<DynamicInvocationResolveResult>(program);
-			Assert.That(rr.IsIndexing, Is.False);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Invocation));
 
 			var mg = rr.Target as MethodGroupResolveResult;
 			Assert.That(mg, Is.Not.Null, "Expected a MethodGroup");
@@ -197,7 +257,7 @@ class TestClass {
 	}
 }";
 			var rr = Resolve<DynamicInvocationResolveResult>(program);
-			Assert.That(rr.IsIndexing, Is.False);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Invocation));
 
 			var mg = rr.Target as MethodGroupResolveResult;
 			Assert.That(mg, Is.Not.Null, "Expected a MethodGroup");
@@ -212,7 +272,7 @@ class TestClass {
 		}
 
 		[Test]
-		public void InvocationWithDynamicArgumentWithTwoApplicableExtensionMethods() {
+		public void InvocationWithDynamicArgumentWhenTheOnlyApplicableMethodIsAnExtensionMethod() {
 			string program = @"using System;
 static class OtherClass {
 	public void SomeMethod(this TestClass x, int a) {}
@@ -225,19 +285,8 @@ class TestClass {
 		var x = $this.SomeMethod(obj)$;
 	}
 }";
-			var rr = Resolve<DynamicInvocationResolveResult>(program);
-			Assert.That(rr.IsIndexing, Is.False);
-
-			var mg = rr.Target as MethodGroupResolveResult;
-			Assert.That(mg, Is.Not.Null, "Expected a MethodGroup");
-			Assert.That(mg.TargetResult, Is.InstanceOf<ThisResolveResult>());
-			Assert.That(mg.MethodName, Is.EqualTo("SomeMethod"));
-			Assert.That(mg.Methods.All(m => m.Parameters.Count == 2) && mg.Methods.All(m => m.Parameters[0].Type.Name == "TestClass"));
-			Assert.That(mg.Methods.Select(m => m.Parameters[1].Type.Name), Is.EquivalentTo(new[] { "Int32", "String" }));
-			Assert.That(mg.Methods.All(m => m.Name == "SomeMethod" && m.DeclaringType.Name == "OtherClass"));
-
-			Assert.That(rr.Arguments.Count, Is.EqualTo(1));
-			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "obj");
+			var rr = Resolve(program);
+			Assert.That(rr.IsError, Is.True);
 		}
 
 		[Test]
@@ -255,7 +304,7 @@ class TestClass {
 	}
 }";
 			var rr = Resolve<DynamicInvocationResolveResult>(program);
-			Assert.That(rr.IsIndexing, Is.False);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Invocation));
 
 			var mg = rr.Target as MethodGroupResolveResult;
 			Assert.That(mg, Is.Not.Null, "Expected a MethodGroup");
@@ -269,7 +318,7 @@ class TestClass {
 			Assert.That(rr.Arguments[0].Name, Is.EqualTo("a"));
 			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "obj");
 			Assert.That(rr.Arguments[1].Name, Is.EqualTo("i"));
-			Assert.That(rr.Arguments[1].Value is ConversionResolveResult && ((ConversionResolveResult)rr.Arguments[1].Value).Input is LocalResolveResult && ((LocalResolveResult)((ConversionResolveResult)rr.Arguments[1].Value).Input).Variable.Name == "idx");
+			Assert.That(rr.Arguments[1].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[1].Value).Variable.Name == "idx");
 		}
 
 		[Test]
@@ -284,11 +333,11 @@ class TestClass {
 }";
 			var rr = Resolve<DynamicInvocationResolveResult>(program);
 			Assert.That(rr.Type.Kind, Is.EqualTo(TypeKind.Dynamic));
-			Assert.That(rr.IsIndexing, Is.True);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Indexing));
 			Assert.That(rr.Target is LocalResolveResult && ((LocalResolveResult)rr.Target).Variable.Name == "obj");
 			Assert.That(rr.Arguments.Count, Is.EqualTo(1));
 			Assert.That(rr.Arguments[0].Name, Is.Null);
-			Assert.That(rr.Arguments[0].Value is ConversionResolveResult && ((ConversionResolveResult)rr.Arguments[0].Value).Input is LocalResolveResult && ((LocalResolveResult)((ConversionResolveResult)rr.Arguments[0].Value).Input).Variable.Name == "a");
+			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "a");
 		}
 
 		[Test]
@@ -303,13 +352,13 @@ class TestClass {
 }";
 			var rr = Resolve<DynamicInvocationResolveResult>(program);
 			Assert.That(rr.Type.Kind, Is.EqualTo(TypeKind.Dynamic));
-			Assert.That(rr.IsIndexing, Is.True);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Indexing));
 			Assert.That(rr.Target is LocalResolveResult && ((LocalResolveResult)rr.Target).Variable.Name == "obj");
 			Assert.That(rr.Arguments.Count, Is.EqualTo(2));
 			Assert.That(rr.Arguments[0].Name, Is.EqualTo("arg1"));
-			Assert.That(rr.Arguments[0].Value is ConversionResolveResult && ((ConversionResolveResult)rr.Arguments[0].Value).Input is LocalResolveResult && ((LocalResolveResult)((ConversionResolveResult)rr.Arguments[0].Value).Input).Variable.Name == "a");
+			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "a");
 			Assert.That(rr.Arguments[1].Name, Is.EqualTo("arg2"));
-			Assert.That(rr.Arguments[1].Value is ConversionResolveResult && ((ConversionResolveResult)rr.Arguments[1].Value).Input is LocalResolveResult && ((LocalResolveResult)((ConversionResolveResult)rr.Arguments[1].Value).Input).Variable.Name == "b");
+			Assert.That(rr.Arguments[1].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[1].Value).Variable.Name == "b");
 		}
 
 		[Test]
@@ -348,11 +397,62 @@ class TestClass {
 }";
 			var rr = Resolve<DynamicInvocationResolveResult>(program);
 			Assert.That(rr.Type.Kind, Is.EqualTo(TypeKind.Dynamic));
-			Assert.That(rr.IsIndexing, Is.True);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Indexing));
 			Assert.That(rr.Target, Is.InstanceOf<ThisResolveResult>());
 			Assert.That(rr.Arguments.Count, Is.EqualTo(1));
 			Assert.That(rr.Arguments[0].Name, Is.Null);
 			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "obj");
+		}
+
+		[Test]
+		public void IndexingWithDynamicArgumentWithAnApplicableBaseIndexer() {
+			string program = @"using System;
+class TestBase {
+	public int this[int a] { get { return 0; } }
+}
+
+class TestClass : TestBase {
+	public int this[string a] { get { return 0; } }
+	public int this[string a, int b] { get { return 0; } }
+	void F() {
+		dynamic obj = null;
+		var x = $this[obj]$;
+	}
+}";
+			var rr = Resolve<DynamicInvocationResolveResult>(program);
+			Assert.That(rr.Type.Kind, Is.EqualTo(TypeKind.Dynamic));
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Indexing));
+			Assert.That(rr.Target, Is.InstanceOf<ThisResolveResult>());
+			Assert.That(rr.Arguments.Count, Is.EqualTo(1));
+			Assert.That(rr.Arguments[0].Name, Is.Null);
+			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "obj");
+		}
+
+		[Test, Ignore("Fails")]
+		public void IndexingWithDynamicArgumentWithTheOnlyApplicableIndexerShadowingABaseIndexer() {
+			string program = @"using System;
+class TestBase {
+	public int this[int a] { get { return 0; } }
+}
+
+class TestClass : TestBase {
+	public new int this[int a] { get { return 0; } }
+	public int this[int a, string b] { get { return 0; } }
+
+	void F() {
+		dynamic obj = null;
+		var x = $this[obj]$;
+	}
+}";
+			var rr = Resolve<CSharpInvocationResolveResult>(program);
+			Assert.That(rr.Member.Name, Is.EqualTo("Item"));
+			Assert.That(((IParameterizedMember)rr.Member).Parameters.Count, Is.EqualTo(1));
+			Assert.That(rr.Arguments.Count, Is.EqualTo(1));
+			var cr = rr.Arguments[0] as ConversionResolveResult;
+			Assert.That(cr, Is.Not.Null);
+			Assert.That(cr.Conversion.IsImplicit, Is.True);
+			Assert.That(cr.Conversion.IsDynamicConversion, Is.True);
+			Assert.That(cr.Input is LocalResolveResult && ((LocalResolveResult)cr.Input).Variable.Name == "obj");
 		}
 
 		[Test]
@@ -369,13 +469,247 @@ class TestClass {
 }";
 			var rr = Resolve<DynamicInvocationResolveResult>(program);
 			Assert.That(rr.Type.Kind, Is.EqualTo(TypeKind.Dynamic));
-			Assert.That(rr.IsIndexing, Is.True);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.Indexing));
 			Assert.That(rr.Target, Is.InstanceOf<ThisResolveResult>());
 			Assert.That(rr.Arguments.Count, Is.EqualTo(2));
 			Assert.That(rr.Arguments[0].Name, Is.EqualTo("a"));
 			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "obj");
 			Assert.That(rr.Arguments[1].Name, Is.EqualTo("i"));
-			Assert.That(rr.Arguments[1].Value is ConversionResolveResult && ((ConversionResolveResult)rr.Arguments[1].Value).Input is LocalResolveResult && ((LocalResolveResult)((ConversionResolveResult)rr.Arguments[1].Value).Input).Variable.Name == "idx");
+			Assert.That(rr.Arguments[1].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[1].Value).Variable.Name == "idx");
+		}
+
+  		[Test]
+		public void ConstructingObjectWithDynamicArgumentWithOneApplicableConstructor() {
+			string program = @"using System;
+class TestClass {
+	public TestClass(int a) {}
+	public void TestClass(int a, string b) {}
+
+	void F() {
+		dynamic obj = null;
+		var x = $new TestClass(obj)$;
+	}
+}";
+			var rr = Resolve<CSharpInvocationResolveResult>(program);
+			Assert.That(rr.Member.Name, Is.EqualTo(".ctor"));
+			Assert.That(rr.TargetResult, Is.Null);
+			Assert.That(((IParameterizedMember)rr.Member).Parameters.Count, Is.EqualTo(1));
+			Assert.That(rr.Arguments.Count, Is.EqualTo(1));
+			var cr = rr.Arguments[0] as ConversionResolveResult;
+			Assert.That(cr, Is.Not.Null);
+			Assert.That(cr.Input is LocalResolveResult && ((LocalResolveResult)cr.Input).Variable.Name == "obj");
+		}
+
+ 		[Test]
+		public void ConstructingObjectWithDynamicArgumentWithTwoApplicableConstructors() {
+			string program = @"using System;
+class TestClass {
+	public TestClass(int a, int b) {}
+	public TestClass(string a, int b) {}
+	public void TestClass(int a, string b) {}
+
+	void F() {
+		dynamic obj = null;
+		int i = 0;
+		var x = $new TestClass(obj, i)$;
+	}
+}";
+			var rr = Resolve<DynamicInvocationResolveResult>(program);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.ObjectCreation));
+
+			var mg = rr.Target as MethodGroupResolveResult;
+			Assert.That(mg, Is.Not.Null, "Expected a MethodGroup");
+			Assert.That(mg.TargetResult, Is.Null);
+			Assert.That(mg.MethodName, Is.EqualTo(".ctor"));
+			Assert.That(mg.Methods.All(m => m.Parameters.Count == 2 && m.Parameters[1].Type.Name == "Int32"));
+			Assert.That(mg.Methods.Select(m => m.Parameters[0].Type.Name), Is.EquivalentTo(new[] { "Int32", "String" }));
+			Assert.That(mg.Methods.All(m => m.Name == ".ctor" && m.DeclaringType.Name == "TestClass"));
+
+			Assert.That(rr.Arguments.Count, Is.EqualTo(2));
+			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "obj");
+			Assert.That(rr.Arguments[1].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[1].Value).Variable.Name == "i");
+		}
+
+ 		[Test]
+		public void ConstructingObjectWithDynamicArgumentWithTwoApplicableConstructorsAndNamedArguments() {
+			string program = @"using System;
+class TestClass {
+	public TestClass(int arg1, int arg2) {}
+	public TestClass(string arg1, int arg2) {}
+	public void TestClass(int a) {}
+
+	void F() {
+		dynamic obj = null;
+		int i = 0;
+		var x = $new TestClass(arg1: obj, arg2: i)$;
+	}
+}";
+			var rr = Resolve<DynamicInvocationResolveResult>(program);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.ObjectCreation));
+
+			var mg = rr.Target as MethodGroupResolveResult;
+			Assert.That(mg, Is.Not.Null, "Expected a MethodGroup");
+			Assert.That(mg.TargetResult, Is.Null);
+			Assert.That(mg.MethodName, Is.EqualTo(".ctor"));
+			Assert.That(mg.Methods.All(m => m.Parameters.Count == 2 && m.Parameters[1].Type.Name == "Int32"));
+			Assert.That(mg.Methods.Select(m => m.Parameters[0].Type.Name), Is.EquivalentTo(new[] { "Int32", "String" }));
+			Assert.That(mg.Methods.All(m => m.Name == ".ctor" && m.DeclaringType.Name == "TestClass"));
+
+			Assert.That(rr.Arguments.Count, Is.EqualTo(2));
+			Assert.That(rr.Arguments[0].Name, Is.EqualTo("arg1"));
+			Assert.That(rr.Arguments[0].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[0].Value).Variable.Name == "obj");
+			Assert.That(rr.Arguments[1].Name, Is.EqualTo("arg2"));
+			Assert.That(rr.Arguments[1].Value is LocalResolveResult && ((LocalResolveResult)rr.Arguments[1].Value).Variable.Name == "i");
+		}
+
+ 		[Test]
+		public void ConstructingObjectWithDynamicArgumentWithTwoApplicableConstructorsAndInitializerStatements() {
+			string program = @"using System;
+class TestClass {
+	public TestClass(int a, int b) {}
+	public TestClass(string a, int b) {}
+
+	public int A { get; set; }
+
+	void F() {
+		dynamic obj = null;
+		int i = 0;
+		int j = 0;
+		var x = $new TestClass(obj, i) { A = j }$;
+	}
+}";
+			var rr = Resolve<DynamicInvocationResolveResult>(program);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.ObjectCreation));
+			
+			Assert.That(rr.InitializerStatements.Count, Is.EqualTo(1));
+			var or = rr.InitializerStatements[0] as OperatorResolveResult;
+			Assert.That(or, Is.Not.Null);
+			Assert.That(or.OperatorType, Is.EqualTo(ExpressionType.Assign));
+			var mrr = or.Operands[0] as MemberResolveResult;
+			Assert.That(mrr, Is.Not.Null);
+			Assert.That(mrr.TargetResult, Is.InstanceOf<InitializedObjectResolveResult>());
+			Assert.That(mrr.Member.Name, Is.EqualTo("A"));
+			Assert.That(or.Operands[1], Is.InstanceOf<LocalResolveResult>());
+			Assert.That(((LocalResolveResult)or.Operands[1]).Variable.Name, Is.EqualTo("j"));
+		}
+
+		[Test]
+		public void InitializingBaseWithDynamicArgumentAndOneApplicableConstructor() {
+			string program = @"using System;
+class TestBase {
+	public TestBase(int a, int b) {}
+	public TestBase(string a) {}
+}
+
+class TestClass : TestBase {
+	private static dynamic d;
+	private static int i;
+
+	public TestClass() : $base(d, i)$ {}
+}";
+
+			var rr = Resolve<CSharpInvocationResolveResult>(program);
+
+			Assert.That(rr.Member.Name, Is.EqualTo(".ctor"));
+			Assert.That(rr.TargetResult, Is.Null);
+			Assert.That(((IParameterizedMember)rr.Member).Parameters.Count, Is.EqualTo(2));
+			Assert.That(rr.Arguments.Count, Is.EqualTo(2));
+			Assert.That(rr.Member.DeclaringType.Name, Is.EqualTo("TestBase"));
+			var cr = rr.Arguments[0] as ConversionResolveResult;
+			Assert.That(cr, Is.Not.Null);
+			Assert.That(cr.Input is MemberResolveResult && ((MemberResolveResult)cr.Input).Member.Name == "d");
+			Assert.That(rr.Arguments[1] is MemberResolveResult && ((MemberResolveResult)rr.Arguments[1]).Member.Name == "i");
+		}
+
+		[Test]
+		public void InitializingBaseWithDynamicArgumentAndTwoApplicableConstructors() {
+			string program = @"using System;
+class TestBase {
+	public TestBase(int a, int b) {}
+	public TestBase(string a, int b) {}
+	public TestBase(string a) {}
+}
+
+class TestClass : TestBase {
+	private static dynamic d;
+	private static int i;
+
+	public TestClass() : $base(d, i)$ {}
+}";
+
+			var rr = Resolve<DynamicInvocationResolveResult>(program);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.ObjectCreation));
+
+			var mg = rr.Target as MethodGroupResolveResult;
+			Assert.That(mg, Is.Not.Null, "Expected a MethodGroup");
+			Assert.That(mg.TargetResult, Is.Null);
+			Assert.That(mg.MethodName, Is.EqualTo(".ctor"));
+			Assert.That(mg.Methods.All(m => m.Parameters.Count == 2 && m.Parameters[1].Type.Name == "Int32"));
+			Assert.That(mg.Methods.Select(m => m.Parameters[0].Type.Name), Is.EquivalentTo(new[] { "Int32", "String" }));
+			Assert.That(mg.Methods.All(m => m.Name == ".ctor" && m.DeclaringType.Name == "TestBase"));
+
+			Assert.That(rr.Arguments.Count, Is.EqualTo(2));
+			Assert.That(rr.Arguments[0].Value is MemberResolveResult && ((MemberResolveResult)rr.Arguments[0].Value).Member.Name == "d");
+			Assert.That(rr.Arguments[1].Value is MemberResolveResult && ((MemberResolveResult)rr.Arguments[1].Value).Member.Name == "i");
+		}
+
+		[Test]
+		public void ConstructorChainingWithDynamicArgumentAndOneApplicableConstructor() {
+			string program = @"using System;
+class TestClass {
+	private static dynamic d;
+	private static int i;
+
+	public TestClass(int a, int b) {}
+	public TestClass(string a) {}
+
+	public TestClass() : $this(d, i)$ {}
+}";
+
+			var rr = Resolve<CSharpInvocationResolveResult>(program);
+
+			Assert.That(rr.Member.Name, Is.EqualTo(".ctor"));
+			Assert.That(rr.TargetResult, Is.Null);
+			Assert.That(((IParameterizedMember)rr.Member).Parameters.Count, Is.EqualTo(2));
+			Assert.That(rr.Arguments.Count, Is.EqualTo(2));
+			Assert.That(rr.Member.DeclaringType.Name, Is.EqualTo("TestClass"));
+			var cr = rr.Arguments[0] as ConversionResolveResult;
+			Assert.That(cr, Is.Not.Null);
+			Assert.That(cr.Input is MemberResolveResult && ((MemberResolveResult)cr.Input).Member.Name == "d");
+			Assert.That(rr.Arguments[1] is MemberResolveResult && ((MemberResolveResult)rr.Arguments[1]).Member.Name == "i");
+		}
+
+		[Test]
+		public void ConstructorChainingWithDynamicArgumentAndTwoApplicableConstructors() {
+			string program = @"using System;
+class TestBase {
+}
+
+class TestClass {
+	private static dynamic d;
+	private static int i;
+
+	public TestClass(int a, int b) {}
+	public TestClass(string a, int b) {}
+	public TestClass(string a) {}
+
+	public TestClass() : $this(d, i)$ {}
+}";
+
+			var rr = Resolve<DynamicInvocationResolveResult>(program);
+			Assert.That(rr.InvocationType, Is.EqualTo(DynamicInvocationType.ObjectCreation));
+
+			var mg = rr.Target as MethodGroupResolveResult;
+			Assert.That(mg, Is.Not.Null, "Expected a MethodGroup");
+			Assert.That(mg.TargetResult, Is.Null);
+			Assert.That(mg.MethodName, Is.EqualTo(".ctor"));
+			Assert.That(mg.Methods.All(m => m.Parameters.Count == 2 && m.Parameters[1].Type.Name == "Int32"));
+			Assert.That(mg.Methods.Select(m => m.Parameters[0].Type.Name), Is.EquivalentTo(new[] { "Int32", "String" }));
+			Assert.That(mg.Methods.All(m => m.Name == ".ctor" && m.DeclaringType.Name == "TestClass"));
+
+			Assert.That(rr.Arguments.Count, Is.EqualTo(2));
+			Assert.That(rr.Arguments[0].Value is MemberResolveResult && ((MemberResolveResult)rr.Arguments[0].Value).Member.Name == "d");
+			Assert.That(rr.Arguments[1].Value is MemberResolveResult && ((MemberResolveResult)rr.Arguments[1].Value).Member.Name == "i");
 		}
 	}
 }
