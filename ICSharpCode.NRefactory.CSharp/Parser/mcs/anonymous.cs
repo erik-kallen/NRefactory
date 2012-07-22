@@ -18,7 +18,6 @@ using System.Diagnostics;
 #if STATIC
 using IKVM.Reflection;
 using IKVM.Reflection.Emit;
-using System.Diagnostics;
 #else
 using System.Reflection;
 using System.Reflection.Emit;
