@@ -42,12 +42,12 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
-    <DefineConstants>TRACE;FULL_AST,STATIC</DefineConstants>
+    <DefineConstants>TRACE;FULL_AST;STATIC</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugType>full</DebugType>
     <DebugSymbols>True</DebugSymbols>
-    <DefineConstants>TRACE;DEBUG;FULL_AST,STATIC</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;FULL_AST;STATIC</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
