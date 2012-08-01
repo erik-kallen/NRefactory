@@ -42,12 +42,12 @@ namespace ICSharpCode.NRefactory.CSharp.Parser
 			const string fileName = "TypeSystemTests.TestCase.cs";
 			
 			CSharpParser parser = new CSharpParser();
-			CompilationUnit cu;
+			SyntaxTree syntaxTree;
 			using (Stream s = typeof(TypeSystemTests).Assembly.GetManifestResourceStream(typeof(TypeSystemTests), fileName)) {
-				cu = parser.Parse(s, fileName);
+				syntaxTree = parser.Parse(s, fileName);
 			}
 			
-			var parsedFile = cu.ToTypeSystem();
+			var parsedFile = syntaxTree.ToTypeSystem();
 			return new CSharpProjectContent()
 				.UpdateProjectContent(null, parsedFile)
 				.AddAssemblyReferences(new[] { CecilLoaderTests.Mscorlib })
@@ -84,7 +84,7 @@ namespace ICSharpCode.NRefactory.CSharp.Parser
 		[Test]
 		public void AssemblyAndModuleAttributesDoNotAppearOnTypes() {
 			CSharpParser parser = new CSharpParser();
-			CompilationUnit cu = parser.Parse("[assembly: My1][module: My2][My3]class C {} public class My1Attribute : System.Attribute {} public class My2Attribute : System.Attribute {} public class My3Attribute : System.Attribute {}", "File.cs");
+			var cu = parser.Parse("[assembly: My1][module: My2][My3]class C {} public class My1Attribute : System.Attribute {} public class My2Attribute : System.Attribute {} public class My3Attribute : System.Attribute {}", "File.cs");
 			
 			var ts = cu.ToTypeSystem();
 			var compilation = new CSharpProjectContent()
