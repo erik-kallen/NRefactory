@@ -225,16 +225,16 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 			var syntaxTree = new CSharpParser().Parse(parsedText, "program.cs");
 			syntaxTree.Freeze();
 
-			var parsedFile = syntaxTree.ToTypeSystem();
-			pctx = pctx.UpdateProjectContent(null, parsedFile);
+			var unresolvedFile = syntaxTree.ToTypeSystem();
+			pctx = pctx.AddOrUpdateFiles(unresolvedFile);
 
 			var cmp = pctx.CreateCompilation();
 			var loc = cursorPosition > 0 ? doc.GetLocation(cursorPosition) : new TextLocation (1, 1);
 
 			var rctx = new CSharpTypeResolveContext(cmp.MainAssembly);
-			rctx = rctx.WithUsingScope(parsedFile.GetUsingScope(loc).Resolve(cmp));
+			rctx = rctx.WithUsingScope(unresolvedFile.GetUsingScope(loc).Resolve(cmp));
 
-			var curDef = parsedFile.GetInnermostTypeDefinition(loc);
+			var curDef = unresolvedFile.GetInnermostTypeDefinition(loc);
 			if (curDef != null) {
 					var resolvedDef = curDef.Resolve(rctx).GetDefinition();
 					rctx = rctx.WithCurrentTypeDefinition(resolvedDef);
@@ -243,7 +243,8 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 							rctx = rctx.WithCurrentMember(curMember);
 					}
 			}
-			var mb = new DefaultCompletionContextProvider(doc, parsedFile);
+			var mb = new DefaultCompletionContextProvider(doc, unresolvedFile);
+			mb.AddSymbol ("TEST");
 			var engine = new CSharpCompletionEngine(doc, mb, new TestFactory(), pctx, rctx);
 
 			engine.EolMarker = Environment.NewLine;
@@ -270,12 +271,12 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 			var doc = new ReadOnlyDocument(text);
 			IProjectContent pctx = new CSharpProjectContent();
 			pctx = pctx.AddAssemblyReferences(new [] { CecilLoaderTests.Mscorlib, CecilLoaderTests.SystemCore });
-			var parsedFile = syntaxTree.ToTypeSystem();
+			var unresolvedFile = syntaxTree.ToTypeSystem();
 			
-			pctx = pctx.UpdateProjectContent(null, parsedFile);
+			pctx = pctx.AddOrUpdateFiles(unresolvedFile);
 			var cmp = pctx.CreateCompilation();
 			
-			var mb = new DefaultCompletionContextProvider(doc, parsedFile);
+			var mb = new DefaultCompletionContextProvider(doc, unresolvedFile);
 			var engine = new CSharpCompletionEngine (doc, mb, new TestFactory (), pctx, new CSharpTypeResolveContext (cmp.MainAssembly));
 			engine.EolMarker = Environment.NewLine;
 			engine.FormattingPolicy = FormattingOptionsFactory.CreateMono ();
@@ -5375,6 +5376,45 @@ public class FooBar
 			});
 		}
 
+		[Test()]
+		public void TestCompletionInPreprocessorIf()
+		{
+			CombinedProviderTest(
+				@"using System;
+public class FooBar
+{
+	public static void Main (string[] args)
+	{
+		#if TEST
+		$Console.$
+		#endif
+	}
+}
+
+", provider => {
+				Assert.IsNotNull(provider.Find("WriteLine"));
+			});
+		}
+
+		[Test()]
+		public void TestCompletionInUndefinedPreprocessorIf()
+		{
+			CombinedProviderTest(
+				@"using System;
+public class FooBar
+{
+	public static void Main (string[] args)
+	{
+		#if UNDEFINED
+		$Console.$
+		#endif
+	}
+}
+
+", provider => {
+				Assert.IsNull(provider.Find("WriteLine"));
+			});
+		}
 
 	}
 }

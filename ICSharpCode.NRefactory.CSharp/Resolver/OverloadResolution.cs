@@ -118,7 +118,8 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 			public void AddError(OverloadResolutionErrors newError)
 			{
 				this.Errors |= newError;
-				this.ErrorCount++;
+				if (!IsApplicable(newError))
+					this.ErrorCount++;
 			}
 		}
 		
@@ -131,6 +132,8 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 		Candidate bestCandidateAmbiguousWith;
 		List<Candidate> bestCandidateAmbiguousWithAll;
 		IType[] explicitlyGivenTypeArguments;
+		bool bestCandidateWasValidated;
+		OverloadResolutionErrors bestCandidateValidationResult;
 		
 		#region Constructor
 		public OverloadResolution(ICompilation compilation, ResolveResult[] arguments, string[] argumentNames = null, IType[] typeArguments = null, CSharpConversions conversions = null)
@@ -156,6 +159,7 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 		}
 		#endregion
 		
+		#region Input Properties
 		/// <summary>
 		/// Gets/Sets whether the methods are extension methods that are being called using extension method syntax.
 		/// </summary>
@@ -184,21 +188,36 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 		public IList<ResolveResult> Arguments {
 			get { return arguments; }
 		}
+		#endregion
 		
 		#region AddCandidate
+		/// <summary>
+		/// Adds a candidate to overload resolution.
+		/// </summary>
+		/// <param name="member">The candidate member to add.</param>
+		/// <returns>The errors that prevent the member from being applicable, if any.
+		/// Note: this method does not return errors that do not affect applicability.</returns>
 		public OverloadResolutionErrors AddCandidate(IParameterizedMember member)
 		{
 			return AddCandidate(member, OverloadResolutionErrors.None);
 		}
 		
+		/// <summary>
+		/// Adds a candidate to overload resolution.
+		/// </summary>
+		/// <param name="member">The candidate member to add.</param>
+		/// <param name="additionalErrors">Additional errors that apply to the candidate.
+		/// This is used to represent errors during member lookup (e.g. OverloadResolutionErrors.Inaccessible)
+		/// in overload resolution.</param>
+		/// <returns>The errors that prevent the member from being applicable, if any.
+		/// Note: this method does not return errors that do not affect applicability.</returns>
 		public OverloadResolutionErrors AddCandidate(IParameterizedMember member, OverloadResolutionErrors additionalErrors)
 		{
 			if (member == null)
 				throw new ArgumentNullException("member");
 			
 			Candidate c = new Candidate(member, false);
-			if (additionalErrors != OverloadResolutionErrors.None)
-				c.AddError(additionalErrors);
+			c.AddError(additionalErrors);
 			if (CalculateCandidate(c)) {
 				//candidates.Add(c);
 			}
@@ -207,8 +226,7 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 			    && member.Parameters[member.Parameters.Count - 1].IsParams)
 			{
 				Candidate expandedCandidate = new Candidate(member, true);
-				if (additionalErrors != OverloadResolutionErrors.None)
-					expandedCandidate.AddError(additionalErrors);
+				expandedCandidate.AddError(additionalErrors);
 				// consider expanded form only if it isn't obviously wrong
 				if (CalculateCandidate(expandedCandidate)) {
 					//candidates.Add(expandedCandidate);
@@ -218,11 +236,6 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 				}
 			}
 			return c.Errors;
-		}
-		
-		public static bool IsApplicable(OverloadResolutionErrors errors)
-		{
-			return (errors & ~OverloadResolutionErrors.AmbiguousMatch) == OverloadResolutionErrors.None;
 		}
 		
 		/// <summary>
@@ -433,20 +446,36 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 		#endregion
 		
 		#region Validate Constraints
+		OverloadResolutionErrors ValidateMethodConstraints(Candidate candidate)
+		{
+			// If type inference already failed, we won't check the constraints:
+			if ((candidate.Errors & OverloadResolutionErrors.TypeInferenceFailed) != 0)
+				return OverloadResolutionErrors.None;
+			
+			IMethod method = candidate.Member as IMethod;
+			if (method == null || method.TypeParameters.Count == 0)
+				return OverloadResolutionErrors.None; // the method isn't generic
+			var substitution = GetSubstitution(candidate);
+			for (int i = 0; i < method.TypeParameters.Count; i++) {
+				if (!ValidateConstraints(method.TypeParameters[i], substitution.MethodTypeArguments[i], substitution))
+					return OverloadResolutionErrors.MethodConstraintsNotSatisfied;
+			}
+			return OverloadResolutionErrors.None;
+		}
+		
 		/// <summary>
 		/// Validates whether the given type argument satisfies the constraints for the given type parameter.
 		/// </summary>
 		/// <param name="typeParameter">The type parameter.</param>
 		/// <param name="typeArgument">The type argument.</param>
 		/// <param name="substitution">The substitution that defines how type parameters are replaced with type arguments.
-		/// The substitution is used to check constraints that depend on other type parameters (or recursively on the same type parameter).</param>
+		/// The substitution is used to check constraints that depend on other type parameters (or recursively on the same type parameter).
+		/// May be null if no substitution should be used.</param>
 		/// <returns>True if the constraints are satisfied; false otherwise.</returns>
-		public static bool ValidateConstraints(ITypeParameter typeParameter, IType typeArgument, TypeVisitor substitution)
+		public static bool ValidateConstraints(ITypeParameter typeParameter, IType typeArgument, TypeVisitor substitution = null)
 		{
 			if (typeParameter == null)
 				throw new ArgumentNullException("typeParameter");
-			if (typeParameter.Owner == null)
-				throw new ArgumentNullException("typeParameter.Owner");
 			if (typeArgument == null)
 				throw new ArgumentNullException("typeArgument");
 			return ValidateConstraints(typeParameter, typeArgument, substitution, CSharpConversions.Get(typeParameter.Owner.Compilation));
@@ -491,6 +520,16 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 		#endregion
 		
 		#region CheckApplicability
+		/// <summary>
+		/// Returns whether a candidate with the given errors is still considered to be applicable.
+		/// </summary>
+		public static bool IsApplicable(OverloadResolutionErrors errors)
+		{
+			const OverloadResolutionErrors errorsThatDoNotMatterForApplicability =
+				OverloadResolutionErrors.AmbiguousMatch | OverloadResolutionErrors.MethodConstraintsNotSatisfied;
+			return (errors & ~errorsThatDoNotMatterForApplicability) == OverloadResolutionErrors.None;
+		}
+		
 		void CheckApplicability(Candidate candidate)
 		{
 			// C# 4.0 spec: §7.5.3.1 Applicable function member
@@ -698,6 +737,7 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 		{
 			if (bestCandidate == null) {
 				bestCandidate = candidate;
+				bestCandidateWasValidated = false;
 			} else {
 				switch (BetterFunctionMember(candidate, bestCandidate)) {
 					case 0:
@@ -710,6 +750,7 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 						break;
 					case 1:
 						bestCandidate = candidate;
+						bestCandidateWasValidated = false;
 						bestCandidateAmbiguousWith = null;
 						bestCandidateAmbiguousWithAll = bestCandidateAmbiguousWithAll ?? new List<Candidate>();
 						bestCandidateAmbiguousWithAll.Clear();
@@ -720,15 +761,24 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 		}
 		#endregion
 		
+		#region Output Properties
 		public IParameterizedMember BestCandidate {
 			get { return bestCandidate != null ? bestCandidate.Member : null; }
 		}
 		
+		/// <summary>
+		/// Returns the errors that apply to the best candidate.
+		/// This includes additional errors that do not affect applicability (e.g. AmbiguousMatch, MethodConstraintsNotSatisfied)
+		/// </summary>
 		public OverloadResolutionErrors BestCandidateErrors {
 			get {
 				if (bestCandidate == null)
 					return OverloadResolutionErrors.None;
-				OverloadResolutionErrors err = bestCandidate.Errors;
+				if (!bestCandidateWasValidated) {
+					bestCandidateValidationResult = ValidateMethodConstraints(bestCandidate);
+					bestCandidateWasValidated = true;
+				}
+				OverloadResolutionErrors err = bestCandidate.Errors | bestCandidateValidationResult;
 				if (bestCandidateAmbiguousWith != null)
 					err |= OverloadResolutionErrors.AmbiguousMatch;
 				return err;
@@ -736,7 +786,7 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 		}
 		
 		public bool FoundApplicableCandidate {
-			get { return bestCandidate != null && bestCandidate.Errors == OverloadResolutionErrors.None; }
+			get { return bestCandidate != null && IsApplicable(bestCandidate.Errors); }
 		}
 		
 		public IParameterizedMember BestCandidateAmbiguousWith {
@@ -857,18 +907,21 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 				return null;
 			IMethod method = bestCandidate.Member as IMethod;
 			if (method != null && method.TypeParameters.Count > 0) {
-				SpecializedMethod sm = method as SpecializedMethod;
-				if (sm != null) {
-					// Do not compose the substitutions, but merge them.
-					// This is required for InvocationTests.SubstituteClassAndMethodTypeParametersAtOnce
-					return new SpecializedMethod(
-						(IMethod)method.MemberDefinition,
-						new TypeParameterSubstitution(sm.Substitution.ClassTypeArguments, bestCandidate.InferredTypes));
-				} else {
-					return new SpecializedMethod(method, new TypeParameterSubstitution(null, bestCandidate.InferredTypes));
-				}
+				return new SpecializedMethod((IMethod)method.MemberDefinition, GetSubstitution(bestCandidate));
 			} else {
 				return bestCandidate.Member;
+			}
+		}
+		
+		TypeParameterSubstitution GetSubstitution(Candidate candidate)
+		{
+			SpecializedMethod sm = candidate.Member as SpecializedMethod;
+			if (sm != null) {
+				// Do not compose the substitutions, but merge them.
+				// This is required for InvocationTests.SubstituteClassAndMethodTypeParametersAtOnce
+				return new TypeParameterSubstitution(sm.Substitution.ClassTypeArguments, candidate.InferredTypes);
+			} else {
+				return new TypeParameterSubstitution(null, candidate.InferredTypes);
 			}
 		}
 		
@@ -899,5 +952,6 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 				argumentToParameterMap: this.GetArgumentToParameterMap(),
 				initializerStatements: initializerStatements);
 		}
+		#endregion
 	}
 }

@@ -335,12 +335,16 @@ namespace ICSharpCode.NRefactory.CSharp
 					if (loc != null && pos < loc.Count)
 						result.AddChild (new CSharpTokenNode (Convert (loc [pos++])), Roles.Colon);
 				}
-				
+
+				int attributeCount = 0;
 				foreach (var attr in GetAttributes (optAttributes)) {
 					result.AddChild (attr, Roles.Attribute);
+					attributeCount++;
 				}
+				// Left and right bracket + commas between the attributes
+				int locCount = 2 + attributeCount - 1;
 				// optional comma
-				if (loc != null && pos < loc.Count - 1 && !loc [pos].Equals (loc [pos + 1]))
+				if (loc != null && pos < loc.Count - 1 && loc.Count == locCount + 1)
 					result.AddChild (new CSharpTokenNode (Convert (loc [pos++])), Roles.Comma);
 				if (loc != null && pos < loc.Count)
 					result.AddChild (new CSharpTokenNode (Convert (loc [pos++])), Roles.RBracket);
@@ -3761,7 +3765,7 @@ namespace ICSharpCode.NRefactory.CSharp
 			}
 
 			conversionVisitor.Unit.FileName = fileName;
-			conversionVisitor.Unit.ConditionalSymbols = top.Conditionals.ToArray ();
+			conversionVisitor.Unit.ConditionalSymbols = top.Conditionals.Concat (compilerSettings.ConditionalSymbols).ToArray ();
 			return conversionVisitor.Unit;
 		}
 		
