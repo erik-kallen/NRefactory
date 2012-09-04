@@ -63,8 +63,8 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 		internal const ushort FlagFieldIsVolatile = 0x2000;
 		// flags for DefaultMethod:
 		internal const ushort FlagExtensionMethod = 0x1000;
-		internal const ushort FlagPartialMethodDeclaration = 0x2000;
-		internal const ushort FlagPartialMethodImplemenation = 0x4000;
+		internal const ushort FlagPartialMethod = 0x2000;
+		internal const ushort FlagHasBody = 0x4000;
 		
 		public bool IsFrozen {
 			get { return flags[FlagFrozen]; }
@@ -96,6 +96,23 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 				rareFields.ApplyInterningProvider(provider);
 		}
 		
+		/// <summary>
+		/// Creates a shallow clone of this entity.
+		/// Collections (e.g. a type's member list) will be cloned as well, but the elements
+		/// of said list will not be.
+		/// If this instance is frozen, the clone will be unfrozen.
+		/// </summary>
+		public virtual object Clone()
+		{
+			var copy = (AbstractUnresolvedEntity)MemberwiseClone();
+			copy.flags[FlagFrozen] = false;
+			if (attributes != null)
+				copy.attributes = new List<IUnresolvedAttribute>(attributes);
+			if (rareFields != null)
+				copy.rareFields = (RareFields)rareFields.Clone();
+			return copy;
+		}
+		
 		[Serializable]
 		internal class RareFields
 		{
@@ -109,6 +126,11 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 			
 			public virtual void ApplyInterningProvider(IInterningProvider provider)
 			{
+			}
+			
+			public virtual object Clone()
+			{
+				return MemberwiseClone();
 			}
 		}
 		
