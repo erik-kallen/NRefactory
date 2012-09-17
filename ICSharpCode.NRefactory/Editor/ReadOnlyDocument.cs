@@ -28,6 +28,7 @@ namespace ICSharpCode.NRefactory.Editor
 	public sealed class ReadOnlyDocument : IDocument
 	{
 		readonly ITextSource textSource;
+		readonly string fileName;
 		int[] lines;
 		
 		static readonly char[] newline = { '\r', '\n' };
@@ -61,6 +62,16 @@ namespace ICSharpCode.NRefactory.Editor
 		public ReadOnlyDocument(string text)
 			: this(new StringTextSource(text))
 		{
+		}
+		
+		/// <summary>
+		/// Creates a new ReadOnlyDocument from the given text source;
+		/// and sets IDocument.FileName to the specified file name.
+		/// </summary>
+		public ReadOnlyDocument(ITextSource textSource, string fileName)
+			: this(textSource)
+		{
+			this.fileName = fileName;
 		}
 		
 		/// <inheritdoc/>
@@ -422,6 +433,15 @@ namespace ICSharpCode.NRefactory.Editor
 		object IServiceProvider.GetService(Type serviceType)
 		{
 			return null;
+		}
+		
+		/// <inheritdoc/>
+		/// <remarks>Will never be raised on <see cref="ReadOnlyDocument" />.</remarks>
+		public event EventHandler FileNameChanged { add {} remove {} }
+		
+		/// <inheritdoc/>
+		public string FileName {
+			get { return fileName; }
 		}
 	}
 }

@@ -24,7 +24,7 @@ using ICSharpCode.NRefactory.Utils;
 
 namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 {
-	public abstract class AbstractTypeParameter : ITypeParameter
+	public abstract class AbstractTypeParameter : ITypeParameter, ICompilationProvider
 	{
 		readonly ICompilation compilation;
 		readonly EntityType ownerType;
@@ -219,7 +219,7 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 		
 		public ITypeReference ToTypeReference()
 		{
-			return new TypeParameterReference(this.OwnerType, this.Index);
+			return TypeParameterReference.Create(this.OwnerType, this.Index);
 		}
 		
 		IEnumerable<IType> IType.GetNestedTypes(Predicate<ITypeDefinition> filter, GetMemberOptions options)

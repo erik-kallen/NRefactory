@@ -123,6 +123,12 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		/// The default value is <c>false</c>.
 		/// </summary>
 		public bool UseCustomEvents { get; set; }
+
+		/// <summary>
+		/// Controls if unbound type argument names are inserted in the ast or not.
+		/// The default value is <c>false</c>.
+		/// </summary>
+		public bool ConvertUnboundTypeArguments { get; set;}
 		#endregion
 		
 		#region Convert Type
@@ -136,17 +142,27 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			return astType;
 		}
 		
-		public AstType ConvertType(string ns, string name, int typeParameterCount = 0)
+		public AstType ConvertType(FullTypeName fullTypeName)
 		{
 			if (resolver != null) {
 				foreach (var asm in resolver.Compilation.Assemblies) {
-					var def = asm.GetTypeDefinition(ns, name, typeParameterCount);
+					var def = asm.GetTypeDefinition(fullTypeName);
 					if (def != null) {
 						return ConvertType(def);
 					}
 				}
 			}
-			return new MemberType(new SimpleType(ns), name);
+			TopLevelTypeName top = fullTypeName.TopLevelTypeName;
+			AstType type;
+			if (string.IsNullOrEmpty(top.Namespace)) {
+				type = new SimpleType(top.Name);
+			} else {
+				type = new SimpleType(top.Namespace).MemberType(top.Name);
+			}
+			for (int i = 0; i < fullTypeName.NestingLevel; i++) {
+				type = type.MemberType(fullTypeName.GetNestedTypeName(i));
+			}
+			return type;
 		}
 		
 		AstType ConvertTypeHelper(IType type)
@@ -224,14 +240,14 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				if (trr != null && !trr.IsError && TypeMatches(trr.Type, typeDef, typeArguments)) {
 					// We can use the short type name
 					SimpleType shortResult = new SimpleType(typeDef.Name);
-					AddTypeArguments(shortResult, typeArguments, outerTypeParameterCount, typeDef.TypeParameterCount);
+					AddTypeArguments(shortResult, typeDef, typeArguments, outerTypeParameterCount, typeDef.TypeParameterCount);
 					return shortResult;
 				}
 			}
 			
 			if (AlwaysUseShortTypeNames) {
 				var shortResult = new SimpleType(typeDef.Name);
-				AddTypeArguments(shortResult, typeArguments, outerTypeParameterCount, typeDef.TypeParameterCount);
+				AddTypeArguments(shortResult, typeDef, typeArguments, outerTypeParameterCount, typeDef.TypeParameterCount);
 				return shortResult;
 			}
 			MemberType result = new MemberType();
@@ -248,7 +264,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				}
 			}
 			result.MemberName = typeDef.Name;
-			AddTypeArguments(result, typeArguments, outerTypeParameterCount, typeDef.TypeParameterCount);
+			AddTypeArguments(result, typeDef, typeArguments, outerTypeParameterCount, typeDef.TypeParameterCount);
 			return result;
 		}
 		
@@ -279,13 +295,19 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		/// Adds type arguments to the result type.
 		/// </summary>
 		/// <param name="result">The result AST node (a SimpleType or MemberType)</param>
+		/// <param name="typeDef">The type definition that owns the type parameters</param>
 		/// <param name="typeArguments">The list of type arguments</param>
 		/// <param name="startIndex">Index of first type argument to add</param>
 		/// <param name="endIndex">Index after last type argument to add</param>
-		void AddTypeArguments(AstType result, IList<IType> typeArguments, int startIndex, int endIndex)
+		void AddTypeArguments(AstType result, ITypeDefinition typeDef, IList<IType> typeArguments, int startIndex, int endIndex)
 		{
+			Debug.Assert(endIndex <= typeDef.TypeParameterCount);
 			for (int i = startIndex; i < endIndex; i++) {
-				result.AddChild(ConvertType(typeArguments[i]), Roles.TypeArgument);
+				if (ConvertUnboundTypeArguments && typeArguments[i].Kind == TypeKind.UnboundTypeArgument) {
+					result.AddChild(new SimpleType(typeDef.TypeParameters[i].Name), Roles.TypeArgument);
+				} else {
+					result.AddChild(ConvertType(typeArguments[i]), Roles.TypeArgument);
+				}
 			}
 		}
 		
@@ -589,7 +611,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		{
 			if (GenerateBody) {
 				return new BlockStatement {
-					new ThrowStatement(new ObjectCreateExpression(ConvertType("System", "NotImplementedException")))
+					new ThrowStatement(new ObjectCreateExpression(ConvertType(new TopLevelTypeName("System", "NotImplementedException", 0))))
 				};
 			} else {
 				return BlockStatement.Null;

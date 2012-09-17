@@ -36,10 +36,11 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 	public class DefaultUnresolvedAssembly : AbstractFreezable, IUnresolvedAssembly
 	{
 		string assemblyName;
+		string fullAssemblyName;
 		IList<IUnresolvedAttribute> assemblyAttributes;
 		IList<IUnresolvedAttribute> moduleAttributes;
-		Dictionary<FullNameAndTypeParameterCount, IUnresolvedTypeDefinition> typeDefinitions = new Dictionary<FullNameAndTypeParameterCount, IUnresolvedTypeDefinition>(FullNameAndTypeParameterCountComparer.Ordinal);
-		Dictionary<FullNameAndTypeParameterCount, ITypeReference> typeForwarders = new Dictionary<FullNameAndTypeParameterCount, ITypeReference>(FullNameAndTypeParameterCountComparer.Ordinal);
+		Dictionary<TopLevelTypeName, IUnresolvedTypeDefinition> typeDefinitions = new Dictionary<TopLevelTypeName, IUnresolvedTypeDefinition>(TopLevelTypeNameComparer.Ordinal);
+		Dictionary<TopLevelTypeName, ITypeReference> typeForwarders = new Dictionary<TopLevelTypeName, ITypeReference>(TopLevelTypeNameComparer.Ordinal);
 		
 		protected override void FreezeInternal()
 		{
@@ -51,15 +52,28 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 			}
 		}
 		
+		/// <summary>
+		/// Creates a new unresolved assembly.
+		/// </summary>
+		/// <param name="assemblyName">Full assembly name</param>
 		public DefaultUnresolvedAssembly(string assemblyName)
 		{
 			if (assemblyName == null)
 				throw new ArgumentNullException("assemblyName");
-			this.assemblyName = assemblyName;
+			this.fullAssemblyName = assemblyName;
+			int pos = assemblyName != null ? assemblyName.IndexOf(',') : -1;
+			this.assemblyName = pos < 0 ? assemblyName : assemblyName.Substring(0, pos);
 			this.assemblyAttributes = new List<IUnresolvedAttribute>();
 			this.moduleAttributes = new List<IUnresolvedAttribute>();
 		}
 		
+		/// <summary>
+		/// Gets/Sets the short assembly name.
+		/// </summary>
+		/// <remarks>
+		/// This class handles the short and the full name independently;
+		/// if you change the short name, you should also change the full name.
+		/// </remarks>
 		public string AssemblyName {
 			get { return assemblyName; }
 			set {
@@ -69,7 +83,24 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 				assemblyName = value;
 			}
 		}
-
+		
+		/// <summary>
+		/// Gets/Sets the full assembly name.
+		/// </summary>
+		/// <remarks>
+		/// This class handles the short and the full name independently;
+		/// if you change the full name, you should also change the short name.
+		/// </remarks>
+		public string FullAssemblyName {
+			get { return fullAssemblyName; }
+			set {
+				if (value == null)
+					throw new ArgumentNullException("value");
+				FreezableHelper.ThrowIfFrozen(this);
+				fullAssemblyName = value;
+			}
+		}
+		
 		string location;
 		public string Location {
 			get {
@@ -113,7 +144,7 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 			if (typeDefinition.DeclaringTypeDefinition != null)
 				throw new ArgumentException("Cannot add nested types.");
 			FreezableHelper.ThrowIfFrozen(this);
-			var key = new FullNameAndTypeParameterCount(typeDefinition.Namespace, typeDefinition.Name, typeDefinition.TypeParameters.Count);
+			var key = new TopLevelTypeName(typeDefinition.Namespace, typeDefinition.Name, typeDefinition.TypeParameters.Count);
 			typeDefinitions.Add(key, typeDefinition);
 		}
 		
@@ -126,7 +157,7 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 		/// </summary>
 		/// <param name="typeName">The name of the type.</param>
 		/// <param name="referencedType">The reference used to look up the type in the target assembly.</param>
-		public void AddTypeForwarder(FullNameAndTypeParameterCount typeName, ITypeReference referencedType)
+		public void AddTypeForwarder(TopLevelTypeName typeName, ITypeReference referencedType)
 		{
 			if (referencedType == null)
 				throw new ArgumentNullException("referencedType");
@@ -156,7 +187,7 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 		
 		public IUnresolvedTypeDefinition GetTypeDefinition(string ns, string name, int typeParameterCount)
 		{
-			var key = new FullNameAndTypeParameterCount(ns ?? string.Empty, name, typeParameterCount);
+			var key = new TopLevelTypeName(ns ?? string.Empty, name, typeParameterCount);
 			IUnresolvedTypeDefinition td;
 			if (typeDefinitions.TryGetValue(key, out td))
 				return td;
@@ -185,9 +216,9 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 		}
 		
 		//[NonSerialized]
-		//List<Dictionary<FullNameAndTypeParameterCount, IUnresolvedTypeDefinition>> cachedTypeDictionariesPerNameComparer;
+		//List<Dictionary<TopLevelTypeName, IUnresolvedTypeDefinition>> cachedTypeDictionariesPerNameComparer;
 		
-		Dictionary<FullNameAndTypeParameterCount, IUnresolvedTypeDefinition> GetTypeDictionary(StringComparer nameComparer)
+		Dictionary<TopLevelTypeName, IUnresolvedTypeDefinition> GetTypeDictionary(StringComparer nameComparer)
 		{
 			Debug.Assert(IsFrozen);
 			if (nameComparer == StringComparer.Ordinal)
@@ -260,7 +291,7 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 			readonly DefaultUnresolvedAssembly unresolvedAssembly;
 			readonly ICompilation compilation;
 			readonly ITypeResolveContext context;
-			readonly Dictionary<FullNameAndTypeParameterCount, IUnresolvedTypeDefinition> unresolvedTypeDict;
+			readonly Dictionary<TopLevelTypeName, IUnresolvedTypeDefinition> unresolvedTypeDict;
 			readonly ConcurrentDictionary<IUnresolvedTypeDefinition, ITypeDefinition> typeDict = new ConcurrentDictionary<IUnresolvedTypeDefinition, ITypeDefinition>();
 			readonly INamespace rootNamespace;
 			
@@ -287,6 +318,10 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 				get { return unresolvedAssembly.AssemblyName; }
 			}
 			
+			public string FullAssemblyName {
+				get { return unresolvedAssembly.FullAssemblyName; }
+			}
+			
 			public IList<IAttribute> AssemblyAttributes { get; private set; }
 			public IList<IAttribute> ModuleAttributes { get; private set; }
 			
@@ -303,15 +338,13 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 				return assembly == this;
 			}
 			
-			public ITypeDefinition GetTypeDefinition(string ns, string name, int typeParameterCount)
+			public ITypeDefinition GetTypeDefinition(TopLevelTypeName topLevelTypeName)
 			{
-				var key = new FullNameAndTypeParameterCount(ns ?? string.Empty, name, typeParameterCount);
-				
 				IUnresolvedTypeDefinition td;
 				ITypeReference typeRef;
-				if (unresolvedAssembly.typeDefinitions.TryGetValue(key, out td))
+				if (unresolvedAssembly.typeDefinitions.TryGetValue(topLevelTypeName, out td))
 					return GetTypeDefinition(td);
-				else if (unresolvedAssembly.typeForwarders.TryGetValue(key, out typeRef))
+				else if (unresolvedAssembly.typeForwarders.TryGetValue(topLevelTypeName, out typeRef))
 					return typeRef.Resolve(compilation.TypeResolveContext).GetDefinition();
 				else
 					return null;
@@ -396,7 +429,7 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 					return null;
 				}
 				
-				ICompilation IResolved.Compilation {
+				ICompilation ICompilationProvider.Compilation {
 					get { return assembly.compilation; }
 				}
 				
@@ -418,7 +451,7 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 				
 				ITypeDefinition INamespace.GetTypeDefinition(string name, int typeParameterCount)
 				{
-					var key = new FullNameAndTypeParameterCount(ns.FullName, name, typeParameterCount);
+					var key = new TopLevelTypeName(ns.FullName, name, typeParameterCount);
 					IUnresolvedTypeDefinition unresolvedTypeDef;
 					if (assembly.unresolvedTypeDict.TryGetValue(key, out unresolvedTypeDef))
 						return assembly.GetTypeDefinition(unresolvedTypeDef);

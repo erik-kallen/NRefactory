@@ -25,6 +25,9 @@
 // THE SOFTWARE.
 
 using ICSharpCode.NRefactory.Semantics;
+using System.Linq;
+using ICSharpCode.NRefactory.TypeSystem;
+using System.Collections.Generic;
 
 namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
@@ -33,22 +36,38 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					   Category = IssueCategories.Redundancies,
 					   Severity = Severity.Warning,
 					   IssueMarker = IssueMarker.GrayOut)]
-	public class ParameterNotUsedIssue : VariableNotUsedIssue
+	public class ParameterNotUsedIssue : ICodeIssueProvider
 	{
-
-		internal override GatherVisitorBase GetGatherVisitor (BaseRefactoringContext context, SyntaxTree unit)
+		#region ICodeIssueProvider implementation
+		public IEnumerable<CodeIssue> GetIssues(BaseRefactoringContext context)
 		{
-			return new GatherVisitor (context, unit);
+			return new GatherVisitor (context).GetIssues ();
 		}
+		#endregion
 
 		class GatherVisitor : GatherVisitorBase
 		{
-			SyntaxTree unit;
-
-			public GatherVisitor (BaseRefactoringContext ctx, SyntaxTree unit)
+			public GatherVisitor (BaseRefactoringContext ctx)
 				: base (ctx)
 			{
-				this.unit = unit;
+			}
+
+			public override void VisitMethodDeclaration(MethodDeclaration methodDeclaration)
+			{
+				// Only some methods are candidates for the warning
+
+				if (methodDeclaration.Body.IsNull)
+					return;
+				var methodResolveResult = ctx.Resolve(methodDeclaration) as MemberResolveResult;
+				if (methodResolveResult == null)
+					return;
+				var member = methodResolveResult.Member;
+				if (member.IsOverride)
+					return;
+				if (member.ImplementedInterfaceMembers.Any ())
+					return;
+
+				base.VisitMethodDeclaration(methodDeclaration);
 			}
 
 			public override void VisitParameterDeclaration (ParameterDeclaration parameterDeclaration)
@@ -61,7 +80,8 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				var resolveResult = ctx.Resolve (parameterDeclaration) as LocalResolveResult;
 				if (resolveResult == null)
 					return;
-				if (FindUsage (ctx, unit, resolveResult.Variable, parameterDeclaration))
+
+				if (ctx.FindReferences (parameterDeclaration.Parent, resolveResult.Variable).Any(r => r.Node != parameterDeclaration))
 					return;
 
 				AddIssue (parameterDeclaration.NameToken, ctx.TranslateString ("Parameter is never used"));

@@ -22,6 +22,7 @@ using System.Collections.ObjectModel;
 using ICSharpCode.NRefactory.CSharp.Resolver;
 using ICSharpCode.NRefactory.Semantics;
 using ICSharpCode.NRefactory.TypeSystem;
+using ICSharpCode.NRefactory.TypeSystem.Implementation;
 using ICSharpCode.NRefactory.Utils;
 
 namespace ICSharpCode.NRefactory.CSharp.TypeSystem
@@ -32,9 +33,9 @@ namespace ICSharpCode.NRefactory.CSharp.TypeSystem
 	[Serializable]
 	public sealed class MemberTypeOrNamespaceReference : TypeOrNamespaceReference, ISupportsInterning
 	{
-		TypeOrNamespaceReference target;
-		string identifier;
-		IList<ITypeReference> typeArguments;
+		readonly TypeOrNamespaceReference target;
+		readonly string identifier;
+		readonly IList<ITypeReference> typeArguments;
 		readonly NameLookupMode lookupMode;
 		
 		public MemberTypeOrNamespaceReference(TypeOrNamespaceReference target, string identifier, IList<ITypeReference> typeArguments, NameLookupMode lookupMode = NameLookupMode.Type)
@@ -58,7 +59,11 @@ namespace ICSharpCode.NRefactory.CSharp.TypeSystem
 		}
 		
 		public IList<ITypeReference> TypeArguments {
-			get { return new ReadOnlyCollection<ITypeReference>(typeArguments); }
+			get { return typeArguments; }
+		}
+		
+		public NameLookupMode LookupMode {
+			get { return lookupMode; }
 		}
 		
 		/// <summary>
@@ -67,7 +72,7 @@ namespace ICSharpCode.NRefactory.CSharp.TypeSystem
 		/// </summary>
 		public MemberTypeOrNamespaceReference AddSuffix(string suffix)
 		{
-			return new MemberTypeOrNamespaceReference(target, identifier + suffix, typeArguments);
+			return new MemberTypeOrNamespaceReference(target, identifier + suffix, typeArguments, lookupMode);
 		}
 		
 		public override ResolveResult Resolve(CSharpResolver resolver)
@@ -86,19 +91,18 @@ namespace ICSharpCode.NRefactory.CSharp.TypeSystem
 			}
 		}
 		
+		public override IType ResolveType(CSharpResolver resolver)
+		{
+			TypeResolveResult trr = Resolve(resolver) as TypeResolveResult;
+			return trr != null ? trr.Type : new UnknownType(null, identifier, typeArguments.Count);
+		}
+		
 		public override string ToString()
 		{
 			if (typeArguments.Count == 0)
 				return target.ToString() + "." + identifier;
 			else
 				return target.ToString() + "." + identifier + "<" + string.Join(",", typeArguments) + ">";
-		}
-		
-		void ISupportsInterning.PrepareForInterning(IInterningProvider provider)
-		{
-			target = provider.Intern(target);
-			identifier = provider.Intern(identifier);
-			typeArguments = provider.InternList(typeArguments);
 		}
 		
 		int ISupportsInterning.GetHashCodeForInterning()
