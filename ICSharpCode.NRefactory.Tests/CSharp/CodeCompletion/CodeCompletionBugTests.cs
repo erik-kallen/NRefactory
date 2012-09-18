@@ -37,6 +37,8 @@ using ICSharpCode.NRefactory.CSharp.TypeSystem;
 using ICSharpCode.NRefactory.Editor;
 using ICSharpCode.NRefactory.TypeSystem;
 using NUnit.Framework;
+using ICSharpCode.NRefactory.CSharp.Resolver;
+using ICSharpCode.NRefactory.CSharp.Refactoring;
 
 namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 {
@@ -68,6 +70,15 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 		class TestFactory
 		: ICompletionDataFactory
 		{
+			readonly CSharpResolver state;
+			readonly TypeSystemAstBuilder builder;
+
+			public TestFactory(CSharpResolver state)
+			{
+				this.state = state;
+				builder = new TypeSystemAstBuilder(state);
+			}
+
 			class CompletionData
 			: ICompletionData
 			{
@@ -141,12 +152,22 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 			{
 				return new CompletionData (entity.Name);
 			}
-			
 
-			public ICompletionData CreateTypeCompletionData (ICSharpCode.NRefactory.TypeSystem.IType type, string shortType)
+			public ICompletionData CreateTypeCompletionData (ICSharpCode.NRefactory.TypeSystem.IType type, bool fullName, bool isInAttributeContext)
 			{
-				return new CompletionData (shortType);
+				string name = fullName ? builder.ConvertType(type).GetText() : type.Name; 
+				if (isInAttributeContext && name.EndsWith("Attribute") && name.Length > "Attribute".Length) {
+					name = name.Substring(0, name.Length - "Attribute".Length);
+				}
+				return new CompletionData (name);
 			}
+
+			public ICompletionData CreateMemberCompletionData(IType type, IEntity member)
+			{
+				string name = builder.ConvertType(type).GetText(); 
+				return new CompletionData (name + "."+ member.Name);
+			}
+
 
 			public ICompletionData CreateLiteralCompletionData (string title, string description, string insertText)
 			{
@@ -251,7 +272,7 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 			}
 			var mb = new DefaultCompletionContextProvider(doc, unresolvedFile);
 			mb.AddSymbol ("TEST");
-			var engine = new CSharpCompletionEngine(doc, mb, new TestFactory(), pctx, rctx);
+			var engine = new CSharpCompletionEngine(doc, mb, new TestFactory(new CSharpResolver (rctx)), pctx, rctx);
 
 			engine.EolMarker = Environment.NewLine;
 			engine.FormattingPolicy = FormattingOptionsFactory.CreateMono();
@@ -283,7 +304,7 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 			var cmp = pctx.CreateCompilation();
 			
 			var mb = new DefaultCompletionContextProvider(doc, unresolvedFile);
-			var engine = new CSharpCompletionEngine (doc, mb, new TestFactory (), pctx, new CSharpTypeResolveContext (cmp.MainAssembly));
+			var engine = new CSharpCompletionEngine (doc, mb, new TestFactory (new CSharpResolver (new CSharpTypeResolveContext (cmp.MainAssembly))), pctx, new CSharpTypeResolveContext (cmp.MainAssembly));
 			engine.EolMarker = Environment.NewLine;
 			engine.FormattingPolicy = FormattingOptionsFactory.CreateMono ();
 			return Tuple.Create (doc, engine);
@@ -5512,5 +5533,38 @@ class C : A
 				Assert.IsNull(provider.Find("Hidden"));
 			});
 		}
+
+
+		/// <summary>
+		/// Bug 7191 - code completion problem with generic interface using nested type
+		/// </summary>
+		[Test()]
+		public void TestBug7191()
+		{
+			CombinedProviderTest(
+				@"using System.Collections.Generic;
+namespace bug
+{
+    public class Outer
+    {
+        public class Nested
+        {
+        }
+    }
+    public class TestClass
+    {
+        void Bar()
+        {
+            $IList<Outer.Nested> foo = new $
+        }
+    }
+}
+
+", provider => {
+				Assert.IsNotNull(provider.Find("List<Outer.Nested>"));
+			});
+		}
+
+
 	}
 }
