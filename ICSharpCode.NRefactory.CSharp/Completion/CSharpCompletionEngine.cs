@@ -198,6 +198,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 				}
 			}
 			var resolveResult = ResolveExpression(expr);
+
 			if (resolveResult == null) {
 				return null;
 			}
@@ -262,10 +263,20 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 						return contextList.Result;
 					}
 					
-					foreach (var m in initializerResult.Item1.Type.GetMembers (m => m.IsPublic && (m.EntityType == EntityType.Property || m.EntityType == EntityType.Field))) {
-						contextList.AddMember(m);
+					var lookup = new MemberLookup(ctx.CurrentTypeDefinition, Compilation.MainAssembly);
+					bool isProtectedAllowed = ctx.CurrentTypeDefinition != null ? 
+						ctx.CurrentTypeDefinition.IsDerivedFrom(initializerResult.Item1.Type.GetDefinition()) : 
+							false;
+
+					foreach (var m in initializerResult.Item1.Type.GetMembers (m => m.EntityType == EntityType.Field)) {
+						if (lookup.IsAccessible (m, isProtectedAllowed))
+							contextList.AddMember(m);
 					}
-					
+					foreach (IProperty m in initializerResult.Item1.Type.GetMembers (m => m.EntityType == EntityType.Property)) {
+						if (m.CanSet && lookup.IsAccessible (m.Setter, isProtectedAllowed))
+							contextList.AddMember(m);
+					}
+
 					if (prev != null && (prev is NamedExpression)) {
 						// case 2)
 						return contextList.Result;
@@ -656,19 +667,11 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 							return HandleCatchClauseType(identifierStart);
 						}
 					}
-					if (!(char.IsLetter(completionChar) || completionChar == '_') && (!controlSpace || identifierStart == null || !(identifierStart.Node.Parent is ArrayInitializerExpression))) {
+					if (!(char.IsLetter(completionChar) || completionChar == '_') && (!controlSpace || identifierStart == null)) {
 						return controlSpace ? HandleAccessorContext() ?? DefaultControlSpaceItems(identifierStart) : null;
 					}
 				
-					char prevCh = offset > 2 ? document.GetCharAt(offset - 2) : ';';
-					char nextCh = offset < document.TextLength ? document.GetCharAt(offset) : ' ';
-					const string allowedChars = ";,.[](){}+-*/%^?:&|~!<>=";
-					if (!Char.IsWhiteSpace(nextCh) && allowedChars.IndexOf(nextCh) < 0) {
-						return null;
-					}
-					if (!(Char.IsWhiteSpace(prevCh) || allowedChars.IndexOf(prevCh) >= 0)) {
-						return null;
-					}
+
 					// Do not pop up completion on identifier identifier (should be handled by keyword completion).
 					tokenIndex = offset - 1;
 					token = GetPreviousToken(ref tokenIndex, false);
@@ -679,6 +682,16 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					var keywordresult = HandleKeywordCompletion(tokenIndex, token);
 					if (keywordresult != null) {
 						return keywordresult;
+					}
+
+					char prevCh = offset > 2 ? document.GetCharAt(offset - 2) : ';';
+					char nextCh = offset < document.TextLength ? document.GetCharAt(offset) : ' ';
+					const string allowedChars = ";,.[](){}+-*/%^?:&|~!<>=";
+
+					if ((!Char.IsWhiteSpace(nextCh) && allowedChars.IndexOf(nextCh) < 0) || !(Char.IsWhiteSpace(prevCh) || allowedChars.IndexOf(prevCh) >= 0)) {
+						if (controlSpace)
+							return DefaultControlSpaceItems(identifierStart);
+						return null;
 					}
 				
 					int prevTokenIndex = tokenIndex;
@@ -2154,10 +2167,17 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 			if (resolveResult is NamespaceResolveResult) {
 				var nr = (NamespaceResolveResult)resolveResult;
 				if (!(resolvedNode.Parent is UsingDeclaration || resolvedNode.Parent != null && resolvedNode.Parent.Parent is UsingDeclaration)) {
+					var lookup = new MemberLookup(
+						ctx.CurrentTypeDefinition,
+						Compilation.MainAssembly
+						);
+
 					foreach (var cl in nr.Namespace.Types) {
 						if (hintType != null && hintType.Kind != TypeKind.Array && cl.Kind == TypeKind.Interface) {
 							continue;
 						}
+						if (!lookup.IsAccessible (cl, false))
+							continue;
 						result.AddType(cl, false, IsAttributeContext(resolvedNode));
 					}
 				}
@@ -2329,7 +2349,8 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 						
 						if (trr.Type.Kind == TypeKind.Enum) {
 							foreach (var field in trr.Type.GetFields ()) {
-								result.AddMember(field);
+								if (lookup.IsAccessible (field, false))
+									result.AddMember(field);
 							}
 							return result.Result;
 						}
@@ -2378,23 +2399,28 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					result.AddMember(member);
 				}*/
 				foreach (var member in lookup.GetAccessibleMembers (resolveResult)) {
-
 					if (member.EntityType == EntityType.Indexer || member.EntityType == EntityType.Operator || member.EntityType == EntityType.Constructor || member.EntityType == EntityType.Destructor) {
 						continue;
 					}
 					if (resolvedNode is BaseReferenceExpression && member.IsAbstract) {
 						continue;
 					}
+					if (member is IType) {
+						if (resolveResult is TypeResolveResult || includeStaticMembers) {
+							result.AddType ((IType)member, false);
+							continue;
+						}
+					}
 					bool memberIsStatic = member.IsStatic;
 					if (!includeStaticMembers && memberIsStatic && !(resolveResult is TypeResolveResult)) {
 						//						Console.WriteLine ("skip static member: " + member.FullName);
 						continue;
 					}
+
 					var field = member as IField;
 					if (field != null) {
 						memberIsStatic |= field.IsConst;
 					}
-					
 					if (!memberIsStatic && skipNonStaticMembers) {
 						continue;
 					}
@@ -2408,23 +2434,11 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 
 					if (member is IMember) {
 						result.AddMember ((IMember)member);
-					} else {
-						if (resolveResult is TypeResolveResult || includeStaticMembers)
-							result.AddType ((IType)member, false);
 					}
 				}
 			}
-			
-			if (resolveResult is TypeResolveResult || includeStaticMembers) {
-				foreach (var nested in type.GetNestedTypes ()) {
-					if (!lookup.IsAccessible(nested.GetDefinition(), isProtectedAllowed))
-						continue;
-					IType addType = typePred != null ? typePred(nested) : nested;
-					if (addType != null)
-						result.AddType(addType, false);
-				}
-				
-			} else {
+
+			if (!(resolveResult is TypeResolveResult || includeStaticMembers)) {
 				foreach (var meths in state.GetExtensionMethods (type)) {
 					foreach (var m in meths) {
 						if (!lookup.IsAccessible(m, isProtectedAllowed))

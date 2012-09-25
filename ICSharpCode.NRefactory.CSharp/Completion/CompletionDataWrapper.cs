@@ -80,27 +80,29 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 			result.Add (Factory.CreateLiteralCompletionData (alias));
 		}
 
-		Dictionary<IType, ICompletionData> usedTypes = new Dictionary<IType, ICompletionData> ();
+		Dictionary<string, ICompletionData> usedTypes = new Dictionary<string, ICompletionData> ();
 
 		public ICompletionData AddType(IType type, bool showFullName, bool isInAttributeContext = false)
 		{
 			if (type == null)
 				throw new ArgumentNullException("type");
-			if (type.Name == "Void" && type.Namespace == "System")
+			if (type.Name == "Void" && type.Namespace == "System" || type.Kind == TypeKind.Unknown)
 				return null;
 
 			var def = type.GetDefinition();
 			if (def != null && def.ParentAssembly != completion.ctx.CurrentAssembly && !def.IsBrowsable())
 				return null;
 			ICompletionData usedType;
-			if (usedTypes.TryGetValue (type, out usedType)) {
-				usedType.AddOverload (Factory.CreateTypeCompletionData(type, showFullName, isInAttributeContext));
+			var data = Factory.CreateTypeCompletionData(type, showFullName, isInAttributeContext);
+			var text = data.DisplayText;
+
+			if (usedTypes.TryGetValue(text, out usedType)) {
+				usedType.AddOverload(data);
 				return usedType;
 			} 
-			var iCompletionData = Factory.CreateTypeCompletionData(type, showFullName, isInAttributeContext);
-			usedTypes[type] = iCompletionData;
-			result.Add(iCompletionData);
-			return iCompletionData;
+			usedTypes [text] = data;
+			result.Add(data);
+			return data;
 		}
 
 		Dictionary<string, List<ICompletionData>> data = new Dictionary<string, List<ICompletionData>> ();
