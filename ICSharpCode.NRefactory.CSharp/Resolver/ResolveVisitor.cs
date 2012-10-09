@@ -1583,7 +1583,7 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 					var addRR = memberLookup.Lookup(initializedObject, "Add", EmptyList<IType>.Instance, true);
 					var mgrr = addRR as MethodGroupResolveResult;
 					if (mgrr != null) {
-						OverloadResolution or = mgrr.PerformOverloadResolution(resolver.Compilation, addArguments, null, false, false, resolver.CheckForOverflow, resolver.conversions);
+						OverloadResolution or = mgrr.PerformOverloadResolution(resolver.Compilation, addArguments, null, false, false, false, resolver.CheckForOverflow, resolver.conversions);
 						var invocationRR = or.CreateResolveResult(initializedObject);
 						StoreResult(aie, invocationRR);
 						ProcessInvocationResult(null, aie.Elements, invocationRR);
@@ -2745,7 +2745,9 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 			} else {
 				var getEnumeratorMethodGroup = memberLookup.Lookup(expression, "GetEnumerator", EmptyList<IType>.Instance, true) as MethodGroupResolveResult;
 				if (getEnumeratorMethodGroup != null) {
-					var or = getEnumeratorMethodGroup.PerformOverloadResolution(compilation, new ResolveResult[0]);
+					var or = getEnumeratorMethodGroup.PerformOverloadResolution(
+						compilation, new ResolveResult[0],
+						allowExtensionMethods: false, allowExpandingParams: false, allowOptionalParameters: false);
 					if (or.FoundApplicableCandidate && !or.IsAmbiguous && !or.BestCandidate.IsStatic && or.BestCandidate.IsPublic) {
 						collectionType = expression.Type;
 						getEnumeratorInvocation = or.CreateResolveResult(expression);
@@ -2762,7 +2764,9 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 			IMethod moveNextMethod = null;
 			var moveNextMethodGroup = memberLookup.Lookup(new ResolveResult(enumeratorType), "MoveNext", EmptyList<IType>.Instance, false) as MethodGroupResolveResult;
 			if (moveNextMethodGroup != null) {
-				var or = moveNextMethodGroup.PerformOverloadResolution(compilation, new ResolveResult[0]);
+				var or = moveNextMethodGroup.PerformOverloadResolution(
+					compilation, new ResolveResult[0],
+					allowExtensionMethods: false, allowExpandingParams: false, allowOptionalParameters: false);
 				moveNextMethod = or.GetBestCandidateWithSubstitutedTypeArguments() as IMethod;
 			}
 			
@@ -2909,7 +2913,9 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 				foreach (VariableInitializer vi in variableDeclarationStatement.Variables) {
 					IVariable v;
 					if (isConst) {
-						v = MakeConstant(type, vi.NameToken, Resolve(vi.Initializer).ConstantValue);
+						ResolveResult rr = Resolve(vi.Initializer);
+						rr = resolver.ResolveCast(type, rr);
+						v = MakeConstant(type, vi.NameToken, rr.ConstantValue);
 					} else {
 						v = MakeVariable(type, vi.NameToken);
 					}
@@ -3264,7 +3270,7 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 			}
 			
 			// Figure out the correct lookup mode:
-			NameLookupMode lookupMode = GetNameLookupMode(simpleType);
+			NameLookupMode lookupMode = simpleType.GetNameLookupMode();
 			
 			var typeArguments = ResolveTypeArguments(simpleType.TypeArguments);
 			Identifier identifier = simpleType.IdentifierToken;
@@ -3277,23 +3283,6 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 					return withSuffix;
 			}
 			return rr;
-		}
-		
-		NameLookupMode GetNameLookupMode(AstType type)
-		{
-			AstType outermostType = type;
-			while (outermostType.Parent is AstType)
-				outermostType = (AstType)outermostType.Parent;
-			
-			if (outermostType.Parent is UsingDeclaration || outermostType.Parent is UsingAliasDeclaration) {
-				return NameLookupMode.TypeInUsingDeclaration;
-			} else if (outermostType.Role == Roles.BaseType) {
-				// Use BaseTypeReference for a type's base type, and for a constraint on a type.
-				// Do not use it for a constraint on a method.
-				if (outermostType.Parent is TypeDeclaration || (outermostType.Parent is Constraint && outermostType.Parent.Parent is TypeDeclaration))
-					return NameLookupMode.BaseTypeReference;
-			}
-			return NameLookupMode.Type;
 		}
 		
 		ResolveResult IAstVisitor<ResolveResult>.VisitMemberType(MemberType memberType)
@@ -3312,7 +3301,7 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 				target = Resolve(memberType.Target);
 			}
 			
-			NameLookupMode lookupMode = GetNameLookupMode(memberType);
+			NameLookupMode lookupMode = memberType.GetNameLookupMode();
 			var typeArguments = ResolveTypeArguments(memberType.TypeArguments);
 			Identifier identifier = memberType.MemberNameToken;
 			ResolveResult rr = resolver.ResolveMemberAccess(target, identifier.Name, typeArguments, lookupMode);
