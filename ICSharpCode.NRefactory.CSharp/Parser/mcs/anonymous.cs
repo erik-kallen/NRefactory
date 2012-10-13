@@ -572,13 +572,16 @@ namespace Mono.CSharp {
 				//
 				// Parameters could be proxied via local fields for value type storey
 				//
-				if (hoisted_local_params != null) {
-					var local_param = hoisted_local_params.Find (l => l.Parameter.Parameter == hp.Parameter.Parameter);
-					var source = new FieldExpr (local_param.Field, Location);
-					source.InstanceExpression = new CompilerGeneratedThis (CurrentType, Location);
-					hp.EmitAssign (ec, source, false, false);
-					continue;
-				}
+
+// Code commented out to fix #77. Reported upstream: https://bugzilla.xamarin.com/show_bug.cgi?id=7826
+
+//				if (hoisted_local_params != null) {
+//					var local_param = hoisted_local_params.Find (l => l.Parameter.Parameter == hp.Parameter.Parameter);
+//					var source = new FieldExpr (local_param.Field, Location);
+//					source.InstanceExpression = new CompilerGeneratedThis (CurrentType, Location);
+//					hp.EmitAssign (ec, source, false, false);
+//					continue;
+//				}
 
 				hp.EmitHoistingAssignment (ec);
 			}
