@@ -3186,14 +3186,15 @@ namespace ICSharpCode.NRefactory.CSharp
 					result.IsAsync = true;
 					result.AddChild (new CSharpTokenNode (Convert (location [l++]), LambdaExpression.AsyncModifierRole), LambdaExpression.AsyncModifierRole);
 				}
-				
 				if (location == null || location.Count == l + 1) {
-					AddParameter (result, lambdaExpression.Parameters);
+					if (lambdaExpression.Block != null)
+						AddParameter (result, lambdaExpression.Parameters);
 					if (location != null)
 						result.AddChild (new CSharpTokenNode (Convert (location [l++]), LambdaExpression.ArrowRole), LambdaExpression.ArrowRole);
 				} else {
 					result.AddChild (new CSharpTokenNode (Convert (location [l++]), Roles.LPar), Roles.LPar);
-					AddParameter (result, lambdaExpression.Parameters);
+					if (lambdaExpression.Block != null)
+						AddParameter (result, lambdaExpression.Parameters);
 					if (location != null) {
 						result.AddChild (new CSharpTokenNode (Convert (location [l++]), Roles.RPar), Roles.RPar);
 						result.AddChild (new CSharpTokenNode (Convert (location [l++]), LambdaExpression.ArrowRole), LambdaExpression.ArrowRole);
@@ -3207,7 +3208,6 @@ namespace ICSharpCode.NRefactory.CSharp
 						result.AddChild ((AstNode)lambdaExpression.Block.Accept (this), LambdaExpression.BodyRole);
 					}
 				}
-				
 				return result;
 			}
 			
@@ -3361,9 +3361,7 @@ namespace ICSharpCode.NRefactory.CSharp
 			public override object Visit (Mono.CSharp.Linq.Where w)
 			{
 				var result = new QueryWhereClause ();
-				var location = LocationsBag.GetLocations (w);
-				if (location != null)
-					result.AddChild (new CSharpTokenNode (Convert (location [0]), QueryWhereClause.WhereKeywordRole), QueryWhereClause.WhereKeywordRole);
+				result.AddChild (new CSharpTokenNode (Convert (w.Location), QueryWhereClause.WhereKeywordRole), QueryWhereClause.WhereKeywordRole);
 				if (w.Expr != null)
 					result.AddChild ((Expression)w.Expr.Accept (this), Roles.Condition);
 				return result;
@@ -3708,7 +3706,6 @@ namespace ICSharpCode.NRefactory.CSharp
 				return errorReportPrinter;
 			}
 		}
-		
 		public bool HasErrors {
 			get {
 				return errorReportPrinter.ErrorsCount > 0;

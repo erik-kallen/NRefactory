@@ -1452,7 +1452,7 @@ namespace Mono.CSharp {
 			}
 		}
 
-		protected ParametersBlock block;
+		protected readonly ParametersBlock block;
 
 		public TypeSpec ReturnType;
 
