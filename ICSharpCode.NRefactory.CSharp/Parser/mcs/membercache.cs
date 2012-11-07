@@ -305,6 +305,10 @@ namespace Mono.CSharp {
 				if (!BuiltinTypeSpec.IsPrimitiveType (dt)) {
 					switch (dt.BuiltinType) {
 					case BuiltinTypeSpec.Type.String:
+						if (name == Operator.GetMetadataName (Operator.OpType.Implicit) || name == Operator.GetMetadataName (Operator.OpType.Explicit)) {
+							state |= StateFlags.HasConversionOperator;
+						}
+						break;
 					case BuiltinTypeSpec.Type.Delegate:
 					case BuiltinTypeSpec.Type.MulticastDelegate:
 						break;
