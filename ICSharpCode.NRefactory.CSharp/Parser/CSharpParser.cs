@@ -405,15 +405,17 @@ namespace ICSharpCode.NRefactory.CSharp
 				AstNode insertPos = null;
 				while (memberName != null) {
 					Identifier newIdent = Identifier.Create (memberName.Name, Convert (memberName.Location));
-					namespaceDecl.InsertChildBefore (insertPos, newIdent, Roles.Identifier);
-					insertPos = newIdent;
-					
-					if (!memberName.DotLocation.IsNull) {
-						var dotToken = new CSharpTokenNode (Convert (memberName.DotLocation), Roles.Dot);
-						namespaceDecl.InsertChildBefore (insertPos, dotToken, Roles.Dot);
-						insertPos = dotToken;
+					// HACK for a parser 'bug' - sometimes it generates "<invalid>" identifiers in namespace names (on certain bugs in the input file)
+					if (newIdent.Name != "<invalid>") {
+						namespaceDecl.InsertChildBefore (insertPos, newIdent, Roles.Identifier);
+						insertPos = newIdent;
+						
+						if (!memberName.DotLocation.IsNull) {
+							var dotToken = new CSharpTokenNode (Convert (memberName.DotLocation), Roles.Dot);
+							namespaceDecl.InsertChildBefore (insertPos, dotToken, Roles.Dot);
+							insertPos = dotToken;
+						}
 					}
-					
 					memberName = memberName.Left;
 				}
 			}
@@ -3408,7 +3410,7 @@ namespace ICSharpCode.NRefactory.CSharp
 				
 				if (location != null)
 					result.AddChild (new CSharpTokenNode (Convert (location [0]), QueryJoinClause.InKeywordRole), QueryJoinClause.InKeywordRole);
-				
+
 				if (join.Expr != null)
 					result.AddChild ((Expression)join.Expr.Accept (this), QueryJoinClause.InExpressionRole);
 
@@ -3436,7 +3438,9 @@ namespace ICSharpCode.NRefactory.CSharp
 			public override object Visit (Mono.CSharp.Linq.OrderByAscending orderByAscending)
 			{
 				currentQueryOrderClause = new QueryOrderClause();
-				
+				var location2 = LocationsBag.GetLocations (orderByAscending.block);
+				if (location2 != null)
+					currentQueryOrderClause.AddChild (new CSharpTokenNode (Convert (location2 [0]), QueryOrderClause.OrderbyKeywordRole), QueryOrderClause.OrderbyKeywordRole);
 				var ordering = new QueryOrdering ();
 				if (orderByAscending.Expr != null)
 					ordering.AddChild ((Expression)orderByAscending.Expr.Accept (this), Roles.Expression);
@@ -3630,6 +3634,15 @@ namespace ICSharpCode.NRefactory.CSharp
 							Argument = directive.Arg,
 							Take = directive.Take
 						};
+					} else {
+	/*					var newLine = special as SpecialsBag.NewLineToken;
+						if (newLine != null) {
+							if (newLine.NewLine == SpecialsBag.NewLine.Unix) {
+								newLeaf = new UnixNewLine (new TextLocation (newLine.Line, newLine.Col));
+							} else {
+								newLeaf = new WindowsNewLine (new TextLocation (newLine.Line, newLine.Col));
+							}
+						}*/
 					}
 				}
 				if (newLeaf == null)
@@ -3644,7 +3657,9 @@ namespace ICSharpCode.NRefactory.CSharp
 							leaf = node;
 							node = node.Parent;
 						}
-						if (newLeaf is Comment) {
+						if (newLeaf is NewLineNode) {
+							node.InsertChildBefore (leaf, (NewLineNode)newLeaf, Roles.NewLine);
+						} else if (newLeaf is Comment) {
 							node.InsertChildBefore (leaf, (Comment)newLeaf, Roles.Comment);
 						} else {
 							node.InsertChildBefore (leaf, (PreProcessorDirective)newLeaf, Roles.PreProcessorDirective);
@@ -3656,7 +3671,9 @@ namespace ICSharpCode.NRefactory.CSharp
 					// insert comment at the end
 					if (nextLeaf == null) {
 						var node = leaf.Parent ?? conversionVisitor.Unit;
-						if (newLeaf is Comment) {
+						if (newLeaf is NewLineNode) {
+							node.AddChild ((NewLineNode)newLeaf, Roles.NewLine);
+						} else if (newLeaf is Comment) {
 							node.AddChild ((Comment)newLeaf, Roles.Comment);
 						} else {
 							node.AddChild ((PreProcessorDirective)newLeaf, Roles.PreProcessorDirective);
@@ -3668,7 +3685,9 @@ namespace ICSharpCode.NRefactory.CSharp
 					// comment is between 2 nodes
 					if (leaf.EndLocation <= newLeaf.StartLocation && newLeaf.StartLocation <= nextLeaf.StartLocation) {
 						var node = leaf.Parent ?? conversionVisitor.Unit;
-						if (newLeaf is Comment) {
+						if (newLeaf is NewLineNode) {
+							node.InsertChildAfter (leaf, (NewLineNode)newLeaf, Roles.NewLine);
+						} else if (newLeaf is Comment) {
 							node.InsertChildAfter (leaf, (Comment)newLeaf, Roles.Comment);
 						} else {
 							node.InsertChildAfter (leaf, (PreProcessorDirective)newLeaf, Roles.PreProcessorDirective);

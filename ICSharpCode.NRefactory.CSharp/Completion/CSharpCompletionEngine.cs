@@ -237,7 +237,9 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 			while (p != null && !(p is ObjectCreateExpression)) {
 				p = p.Parent;
 			}
-			var parent = (ArrayInitializerExpression)n.Parent;
+			var parent = n.Parent as ArrayInitializerExpression;
+			if (parent == null)
+				return null;
 			if (parent.IsSingleElement)
 				parent = (ArrayInitializerExpression)parent.Parent;
 			if (p != null) {
@@ -634,6 +636,8 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 						return dataList.Result;
 					}
 					if (currentType != null && currentType.Kind == TypeKind.Enum) {
+						if (!char.IsLetter(completionChar))
+							return null;
 						return HandleEnumContext();
 					}
 					var contextList = new CompletionDataWrapper(this);
@@ -1044,6 +1048,11 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 			
 			var member = syntaxTree.GetNodeAt<EnumMemberDeclaration>(location);
 			if (member != null && member.NameToken.EndLocation < location) {
+				if (currentMember == null && currentType != null) {
+					foreach (var a in currentType.Members)
+						if (a.Region.Begin < location && (currentMember == null || a.Region.Begin > currentMember.Region.Begin))
+							currentMember = a;
+				}
 				return DefaultControlSpaceItems();
 			}
 			return null;
@@ -1113,12 +1122,16 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					location.Line,
 					location.Column + 2,
 					n => n is Expression || n is AstType || n is NamespaceDeclaration
-					);
+				);
 				rr = ResolveExpression(node);
 			}
 			// namespace name case
-			if (node is NamespaceDeclaration)
-				return null;
+			var ns = node as NamespaceDeclaration;
+			if (ns != null) {
+				var last = ns.Identifiers.LastOrDefault ();
+				if (last != null && location < last.EndLocation)
+					return null;
+			}
 			if (node is Identifier && node.Parent is ForeachStatement) {
 				var foreachStmt = (ForeachStatement)node.Parent;
 				foreach (var possibleName in GenerateNameProposals (foreachStmt.VariableType)) {
@@ -1228,7 +1241,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					return t.GetAllBaseTypeDefinitions().Any(bt => bt.Equals(attribute)) ? t : null;
 				};
 			}
-			if (node != null || state.CurrentTypeDefinition != null || isInGlobalDelegate) {
+			if (node != null && !(node is NamespaceDeclaration) || state.CurrentTypeDefinition != null || isInGlobalDelegate) {
 				AddTypesAndNamespaces(wrapper, state, node, typePred);
 				
 				wrapper.Result.Add(factory.CreateLiteralCompletionData("global"));
@@ -1297,7 +1310,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					if (type.Kind == TypeKind.Enum) {
 						AddEnumMembers(wrapper, type, state);
 					} else if (type.Kind == TypeKind.Delegate) {
-						AddDelegateHandlers(wrapper, type, true, true);
+						AddDelegateHandlers(wrapper, type, false, true);
 						AutoSelect = false;
 						AutoCompleteEmptyMatch = false;
 					}
@@ -1357,7 +1370,8 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 						def = Compilation.MainAssembly.GetTypeDefinition(currentType.FullTypeName);
 					if (def != null) {
 						bool isProtectedAllowed = true;
-						foreach (var member in def.GetMembers ()) {
+
+						foreach (var member in def.GetMembers (m => currentMember.IsStatic ? m.IsStatic : true)) {
 							if (member is IMethod && ((IMethod)member).FullName == "System.Object.Finalize") {
 								continue;
 							}
@@ -1370,7 +1384,6 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 							if (!lookup.IsAccessible(member, isProtectedAllowed)) {
 								continue;
 							}
-
 							if (memberPred == null || memberPred(member)) {
 								wrapper.AddMember(member);
 							}
@@ -2230,7 +2243,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 				} else if (resolvedType.Kind == TypeKind.Delegate) {
 					if (addedDelegates.Contains(resolvedType.ReflectionName))
 						continue;
-					string parameterDefinition = AddDelegateHandlers(result, resolvedType);
+					string parameterDefinition = AddDelegateHandlers(result, resolvedType, false);
 					string varName = "Handle" + method.Parameters [parameter].Type.Name + method.Parameters [parameter].Name;
 					result.Result.Add(
 						factory.CreateEventCreationCompletionData(
@@ -2278,8 +2291,9 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 			if (resolvedType.Kind != TypeKind.Enum) {
 				return;
 			}
-			completionList.AddEnumMembers(resolvedType, state);
-			DefaultCompletionString = resolvedType.Name;
+			var type = completionList.AddEnumMembers(resolvedType, state);
+			if (type != null)
+				DefaultCompletionString = type.DisplayText;
 		}
 		
 		IEnumerable<ICompletionData> CreateCompletionData(TextLocation location, ResolveResult resolveResult, AstNode resolvedNode, CSharpResolver state, Func<IType, IType> typePred = null)
