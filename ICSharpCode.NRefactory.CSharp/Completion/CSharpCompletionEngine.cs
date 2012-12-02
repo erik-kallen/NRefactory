@@ -856,6 +856,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 						}
 						return DefaultControlSpaceItems();
 					}
+
 					if (IsAttributeContext(n)) {
 						// add attribute targets
 						if (currentType == null) {
@@ -899,14 +900,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 						// add attribute properties.
 						if (n.Parent is ICSharpCode.NRefactory.CSharp.Attribute) {
 							var resolved = astResolver.Resolve(n.Parent);
-							if (resolved != null && resolved.Type != null) {
-								foreach (var property in resolved.Type.GetProperties (p => p.Accessibility == Accessibility.Public)) {
-									contextList.AddMember(property);
-								}
-								foreach (var field in resolved.Type.GetFields (p => p.Accessibility == Accessibility.Public)) {
-									contextList.AddMember(field);
-								}
-							}
+							AddAttributeProperties(contextList, resolved);
 						}
 					} else {
 						csResolver = GetState();
@@ -1094,7 +1088,55 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 			
 			return contextList.Result;
 		}
-		
+		class IfVisitor :DepthFirstAstVisitor
+		{
+			TextLocation loc;
+			ICompletionContextProvider completionContextProvider;
+			public bool IsValid;
+			
+			public IfVisitor(TextLocation loc, ICompletionContextProvider completionContextProvider)
+			{
+				this.loc = loc;
+				this.completionContextProvider = completionContextProvider;
+
+				this.IsValid = true;
+			}
+
+			void Check(string argument)
+			{
+				// TODO: evaluate #if epressions
+				if (argument.Any(c => !(char.IsLetterOrDigit(c) || c == '_')))
+					return;
+				IsValid &= completionContextProvider.ConditionalSymbols.Contains(argument);
+			}
+
+			Stack<PreProcessorDirective> ifStack = new Stack<PreProcessorDirective> ();
+
+			public override void VisitPreProcessorDirective(PreProcessorDirective preProcessorDirective)
+			{
+				Console.WriteLine("visit directiv:"+preProcessorDirective.GetText ());
+				if (preProcessorDirective.Type == PreProcessorDirectiveType.If) {
+					ifStack.Push (preProcessorDirective);
+				} else if (preProcessorDirective.Type == PreProcessorDirectiveType.Endif) {
+					if (ifStack.Count == 0)
+						return;
+					var ifDirective = ifStack.Pop ();
+					if (ifDirective.StartLocation < loc && loc < preProcessorDirective.EndLocation) {
+						Console.WriteLine ("if :"+ ifDirective.Argument);
+						Check (ifDirective.Argument);
+					}
+
+				}
+			
+				base.VisitPreProcessorDirective(preProcessorDirective);
+			}
+			public void End ()
+			{
+				while (ifStack.Count > 0) {
+					Check (ifStack.Pop ().Argument);
+				}
+			}
+		}
 		IEnumerable<ICompletionData> DefaultControlSpaceItems(ExpressionResult xp = null, bool controlSpace = true)
 		{
 			var wrapper = new CompletionDataWrapper(this);
@@ -1121,10 +1163,17 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 				node = unit.GetNodeAt(
 					location.Line,
 					location.Column + 2,
-					n => n is Expression || n is AstType || n is NamespaceDeclaration
+					n => n is Expression || n is AstType || n is NamespaceDeclaration || n is Attribute
 				);
 				rr = ResolveExpression(node);
 			}
+
+			var ifvisitor = new IfVisitor(location, CompletionContextProvider);
+			unit.AcceptVisitor(ifvisitor);
+			ifvisitor.End();
+			if (!ifvisitor.IsValid)
+				return null;
+
 			// namespace name case
 			var ns = node as NamespaceDeclaration;
 			if (ns != null) {
@@ -1185,6 +1234,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 			if (rr != null) {
 				csResolver = rr.Item2;
 			}
+
 			if (csResolver == null) {
 				if (node != null) {
 					csResolver = GetState();
@@ -1201,9 +1251,31 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					csResolver = GetState();
 				}
 			}
+			
+			if (node is Attribute) {
+				// add attribute properties.
+				var astResolver = CompletionContextProvider.GetResolver(csResolver, unit);
+				var resolved = astResolver.Resolve (node);
+				AddAttributeProperties (wrapper, resolved);
+			}
+			
+
 			AddContextCompletion(wrapper, csResolver, node);
 			
 			return wrapper.Result;
+		}
+
+		static void AddAttributeProperties(CompletionDataWrapper wrapper, ResolveResult resolved)
+		{
+			if (resolved == null || resolved.Type.Kind == TypeKind.Unknown)
+				return;
+
+			foreach (var property in resolved.Type.GetProperties (p => p.Accessibility == Accessibility.Public)) {
+				wrapper.AddMember(property);
+			}
+			foreach (var field in resolved.Type.GetFields (p => p.Accessibility == Accessibility.Public)) {
+				wrapper.AddMember(field);
+			}
 		}
 		
 		void AddContextCompletion(CompletionDataWrapper wrapper, CSharpResolver state, AstNode node)
@@ -1256,7 +1328,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 				} else if (currentType != null) {
 					AddKeywords(wrapper, typeLevelKeywords);
 				} else {
-					if (!isInGlobalDelegate)
+					if (!isInGlobalDelegate && !(node is Attribute) )
 						AddKeywords(wrapper, globalLevelKeywords);
 				}
 				var prop = currentMember as IUnresolvedProperty;
@@ -1733,7 +1805,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 			return "";
 		}
 		
-		static CSharpAmbience amb = new CSharpAmbience();
+//		static CSharpAmbience amb = new CSharpAmbience();
 		
 		class Category : CompletionCategory
 		{
@@ -1851,6 +1923,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					case "internal":
 					case "sealed":
 					case "override":
+					case "partial":
 						declarationBegin = j;
 						break;
 					case "static":
