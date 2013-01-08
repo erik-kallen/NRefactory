@@ -370,7 +370,7 @@
     <Compile Include="CSharp\CodeCompletion\ImportCompletionTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Mono.Cecil\Mono.Cecil.csproj">
+    <ProjectReference Include="..\..\cecil\Mono.Cecil.csproj">
       <Project>{D68133BD-1E63-496E-9EDE-4FBDBF77B486}</Project>
       <Name>Mono.Cecil</Name>
       <Private>False</Private>
@@ -390,18 +390,7 @@
       <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="CSharp\" />
-    <Folder Include="CSharp\CodeActions\AddUsing" />
-    <Folder Include="CSharp\Parser\" />
-    <Folder Include="CSharp\CodeIssues\" />
-    <Folder Include="CSharp\CodeActions\" />
-    <Folder Include="CSharp\Parser\Bugs\" />
-    <Folder Include="CSharp\CodeActions\ConvertToInitializer\" />
-    <Folder Include="CSharp\CodeIssues\ParameterCanBeDemotedIssue\" />
-    <Folder Include="Utils\CompositeFormatStringParser\" />
-    <Folder Include="CSharp\CodeIssues\FormatStringIssues\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <MonoDevelop>

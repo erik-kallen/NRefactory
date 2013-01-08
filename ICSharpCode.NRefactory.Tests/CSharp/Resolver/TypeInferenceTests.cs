@@ -32,7 +32,7 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 	[TestFixture]
 	public class TypeInferenceTests : ResolverTestBase
 	{
-		readonly ICompilation compilation = new SimpleCompilation(CecilLoaderTests.Mscorlib);
+		new readonly ICompilation compilation = new SimpleCompilation(CecilLoaderTests.Mscorlib);
 		TypeInference ti;
 		
 		[SetUp]
