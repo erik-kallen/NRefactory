@@ -7,3 +7,4 @@ _ReSharper*/*
 *.csproj.user
 NRefactory.sln.DotSettings.user
 NRefactory.suo
+NRefactory.v11.suo
