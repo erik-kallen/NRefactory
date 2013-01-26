@@ -1,21 +1,21 @@
-﻿// 
-// RedundantObjectCreationArgumentListIssueTests.cs
-// 
+//
+// CreateEnumValueTests.cs
+//
 // Author:
-//      Mansheng Yang <lightyang0@gmail.com>
-// 
-// Copyright (c) 2012 Mansheng Yang <lightyang0@gmail.com>
-// 
+//       Mike Krüger <mkrueger@xamarin.com>
+//
+// Copyright (c) 2013 Xamarin Inc. (http://xamarin.com)
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,60 +23,61 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
-using ICSharpCode.NRefactory.CSharp.Refactoring;
+using System;
 using NUnit.Framework;
+using ICSharpCode.NRefactory.CSharp.Refactoring;
 
-namespace ICSharpCode.NRefactory.CSharp.CodeIssues
+namespace ICSharpCode.NRefactory.CSharp.CodeActions
 {
 	[TestFixture]
-	public class RedundantObjectCreationArgumentListIssueTests : InspectionActionTestBase
+	public class CreateEnumValueTests: ContextActionTestBase
 	{
 		[Test]
-		public void Test ()
+		public void TestSimpleEnum()
 		{
-			var input = @"
-class TestClass
+			Test<CreateEnumValue>(
+				@"enum Foo
 {
-	public int Prop { get; set; }
-	void TestMethod ()
-	{
-		var x = new TestClass () {
-			Prop = 1
-		};
-	}
-}";
-			var output = @"
-class TestClass
-{
-	public int Prop { get; set; }
-	void TestMethod ()
-	{
-		var x = new TestClass {
-			Prop = 1
-		};
-	}
-}";
-			Test<RedundantObjectCreationArgumentListIssue> (input, 1, output);
-		}
-
-		[Test]
-		public void TestNoIssue ()
-		{
-			var input = @"
-class TestClass
-{
-	public TestClass () { }
-	public TestClass (int i) { }
-
-	void TestMethod ()
-	{
-		var x = new TestClass { };
-		var y = new TestClass (1) { };
-	}
-}";
-			Test<RedundantObjectCreationArgumentListIssue> (input, 0);
-		}
-	}
-
+    Bar
 }
+
+class Baz
+{
+    public Baz (Foo foo)
+    {
+    }
+}
+
+class Program
+{
+    public void Main ()
+    {
+        var b = new Baz (Foo.$Something);
+    }
+}
+",@"enum Foo
+{
+	Something,
+    Bar
+}
+
+class Baz
+{
+    public Baz (Foo foo)
+    {
+    }
+}
+
+class Program
+{
+    public void Main ()
+    {
+        var b = new Baz (Foo.Something);
+    }
+}
+");
+				}
+
+		}
+}
+

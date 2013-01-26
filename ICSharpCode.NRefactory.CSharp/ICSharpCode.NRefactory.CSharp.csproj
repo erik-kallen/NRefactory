@@ -40,13 +40,13 @@
     <DefineConstants>TRACE;FULL_AST;NET_4_0;STATIC;NO_AUTHENTICODE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>PdbOnly</DebugType>
+    <DebugType>none</DebugType>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugType>Full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <DebugSymbols>True</DebugSymbols>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
@@ -57,8 +57,8 @@
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'net_4_5_Debug|AnyCPU' ">
-    <DebugType>Full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <DebugSymbols>True</DebugSymbols>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
@@ -69,8 +69,7 @@
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'net_4_5_Release|AnyCPU' ">
-    <DebugType>PdbOnly</DebugType>
-    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <OutputPath>..\bin\</OutputPath>
   </PropertyGroup>
@@ -777,6 +776,9 @@
     <Compile Include="Refactoring\LocalReferenceFinder.cs" />
     <Compile Include="Refactoring\CodeActions\SortUsingsAction.cs" />
     <Compile Include="Formatter\CSharpIndentEngine.cs" />
+    <Compile Include="Refactoring\CodeActions\CreateEnumValue.cs" />
+    <Compile Include="Resolver\AliasTypeResolveResult.cs" />
+    <Compile Include="Resolver\AliasNamespaceResolveResult.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ICSharpCode.NRefactory\ICSharpCode.NRefactory.csproj">

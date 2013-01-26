@@ -191,7 +191,7 @@ namespace ICSharpCode.NRefactory.TypeSystem.Implementation
 				return 1000000013 * baseMember.GetHashCode() + 1000000009 * substitutionWithoutSpecializedTypeParameters.GetHashCode();
 			}
 		}
-		
+
 		public override string ToString()
 		{
 			StringBuilder b = new StringBuilder("[");
