@@ -337,7 +337,7 @@ namespace Mono.CSharp
 
 			SeekableStreamReader seekable = new SeekableStreamReader (s, encoding, session.StreamReaderBuffer);
 
-			var parser = new CSharpParser (seekable, source_file, report, session);
+			var parser = new CSharpParser (seekable, source_file, report, session, false);
 			ParsedParameters = null;
 			ParsedName = null;
 			ParsedBuiltinType = null;

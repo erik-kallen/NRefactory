@@ -118,7 +118,7 @@ namespace Mono.CSharp
 			var parser_session = new ParserSession ();
 			for (int i = 0; i < startup_files; ++i) {
 				var sf = ctx.SourceFiles [i];
-				d.Parse (sf, module, parser_session, ctx.Report);
+				d.Parse (sf, module, parser_session, ctx.Report, false);
 			}
 		}
 
@@ -443,7 +443,7 @@ namespace Mono.CSharp
 		//
 		InputKind ToplevelOrStatement (SeekableStreamReader seekable)
 		{
-			Tokenizer tokenizer = new Tokenizer (seekable, source_file, new ParserSession ());
+			Tokenizer tokenizer = new Tokenizer (seekable, source_file, new ParserSession (), false);
 			
 			int t = tokenizer.token ();
 			switch (t){
@@ -572,7 +572,7 @@ namespace Mono.CSharp
 			seekable.Position = 0;
 
 			source_file.DeclarationFound = false;
-			CSharpParser parser = new CSharpParser (seekable, source_file, new ParserSession ());
+			CSharpParser parser = new CSharpParser (seekable, source_file, new ParserSession (), false);
 
 			if (kind == InputKind.StatementOrExpression){
 				parser.Lexer.putback_char = Tokenizer.EvalStatementParserCharacter;

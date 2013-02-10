@@ -42,7 +42,7 @@ namespace Mono.CSharp
 			}
 		}
 
-		void tokenize_file (SourceFile sourceFile, ModuleContainer module, ParserSession session)
+		void tokenize_file (SourceFile sourceFile, ModuleContainer module, ParserSession session, bool returnAtSignInVerbatimIdentifiers)
 		{
 			Stream input;
 
@@ -57,7 +57,7 @@ namespace Mono.CSharp
 				SeekableStreamReader reader = new SeekableStreamReader (input, ctx.Settings.Encoding);
 				var file = new CompilationSourceFile (module, sourceFile);
 
-				Tokenizer lexer = new Tokenizer (reader, file, session);
+				Tokenizer lexer = new Tokenizer (reader, file, session, returnAtSignInVerbatimIdentifiers);
 				int token, tokens = 0, errors = 0;
 
 				while ((token = lexer.token ()) != Token.EOF){
@@ -71,7 +71,7 @@ namespace Mono.CSharp
 			return;
 		}
 
-		void Parse (ModuleContainer module)
+		void Parse (ModuleContainer module, bool returnAtSignInVerbatimIdentifiers)
 		{
 			bool tokenize_only = module.Compiler.Settings.TokenizeOnly;
 			var sources = module.Compiler.SourceFiles;
@@ -86,9 +86,9 @@ namespace Mono.CSharp
 
 			for (int i = 0; i < sources.Count; ++i) {
 				if (tokenize_only) {
-					tokenize_file (sources[i], module, session);
+					tokenize_file (sources[i], module, session, returnAtSignInVerbatimIdentifiers);
 				} else {
-					Parse (sources[i], module, session, Report);
+					Parse (sources[i], module, session, Report, returnAtSignInVerbatimIdentifiers);
 				}
 			}
 		}
@@ -128,7 +128,7 @@ namespace Mono.CSharp
 		}
 #endif
 
-		public void Parse (SourceFile file, ModuleContainer module, ParserSession session, Report report)
+		public void Parse (SourceFile file, ModuleContainer module, ParserSession session, Report report, bool returnAtSignInVerbatimIdentifiers)
 		{
 			Stream input;
 
@@ -150,7 +150,7 @@ namespace Mono.CSharp
 			input.Position = 0;
 			SeekableStreamReader reader = new SeekableStreamReader (input, ctx.Settings.Encoding, session.StreamReaderBuffer);
 
-			Parse (reader, file, module, session, report);
+			Parse (reader, file, module, session, report, returnAtSignInVerbatimIdentifiers);
 
 			if (ctx.Settings.GenerateDebugInfo && report.Errors == 0 && !file.HasChecksum) {
 				input.Position = 0;
@@ -162,12 +162,12 @@ namespace Mono.CSharp
 			input.Close ();
 		}
 
-		public static CSharpParser Parse (SeekableStreamReader reader, SourceFile sourceFile, ModuleContainer module, ParserSession session, Report report, int lineModifier = 0, int colModifier = 0)
+		public static CSharpParser Parse (SeekableStreamReader reader, SourceFile sourceFile, ModuleContainer module, ParserSession session, Report report, bool returnAtSignInVerbatimIdentifiers, int lineModifier = 0, int colModifier = 0)
 		{
 			var file = new CompilationSourceFile (module, sourceFile);
 			module.AddTypeContainer(file);
 
-			CSharpParser parser = new CSharpParser (reader, file, report, session);
+			CSharpParser parser = new CSharpParser (reader, file, report, session, returnAtSignInVerbatimIdentifiers);
 			parser.Lexer.Line += lineModifier;
 			parser.Lexer.Column += colModifier;
 			parser.Lexer.sbag = new SpecialsBag ();
@@ -277,7 +277,7 @@ namespace Mono.CSharp
 			RootContext.ToplevelTypes = module;
 
 			tr.Start (TimeReporter.TimerType.ParseTotal);
-			Parse (module);
+			Parse (module, false);
 			tr.Stop (TimeReporter.TimerType.ParseTotal);
 
 			if (Report.Errors > 0)

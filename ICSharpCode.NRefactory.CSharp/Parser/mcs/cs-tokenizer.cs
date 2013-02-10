@@ -204,6 +204,7 @@ namespace Mono.CSharp
 		int parsing_generic_less_than;
 		readonly bool doc_processing;
 		readonly LocatedTokenBuffer ltb;
+		readonly bool returnAtSignInVerbatimIdentifiers;
 		
 		//
 		// Used mainly for parser optimizations. Some expressions for instance
@@ -439,7 +440,7 @@ namespace Mono.CSharp
 			}
 		}
 
-		public Tokenizer (SeekableStreamReader input, CompilationSourceFile file, ParserSession session)
+		public Tokenizer (SeekableStreamReader input, CompilationSourceFile file, ParserSession session, bool returnAtSignInVerbatimIdentifiers)
 		{
 			this.source_file = file;
 			this.context = file.Compiler;
@@ -448,6 +449,7 @@ namespace Mono.CSharp
 			this.id_builder = session.IDBuilder;
 			this.number_builder = session.NumberBuilder;
 			this.ltb = new LocatedTokenBuffer (session.LocatedTokens);
+			this.returnAtSignInVerbatimIdentifiers = returnAtSignInVerbatimIdentifiers;
 
 			reader = input;
 
@@ -3083,7 +3085,7 @@ namespace Mono.CSharp
 
 			string s = InternIdentifier (id_builder, pos);
 #if FULL_AST
-			if (quoted) {
+			if (quoted && returnAtSignInVerbatimIdentifiers) {
 				val = ltb.Create ("@" + s, current_source, ref_line, column - 1);
 			} else {
 				val = ltb.Create (s, current_source, ref_line, column);

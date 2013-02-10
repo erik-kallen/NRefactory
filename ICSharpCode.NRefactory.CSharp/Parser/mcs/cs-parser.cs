@@ -14301,12 +14301,12 @@ public Tokenizer Lexer {
 	}
 }		   
 
-public CSharpParser (SeekableStreamReader reader, CompilationSourceFile file, ParserSession session)
-	: this (reader, file, file.Compiler.Report, session)
+public CSharpParser (SeekableStreamReader reader, CompilationSourceFile file, ParserSession session, bool returnAtSignInVerbatimIdentifiers)
+	: this (reader, file, file.Compiler.Report, session, returnAtSignInVerbatimIdentifiers)
 {
 }
 
-public CSharpParser (SeekableStreamReader reader, CompilationSourceFile file, Report report, ParserSession session)
+public CSharpParser (SeekableStreamReader reader, CompilationSourceFile file, Report report, ParserSession session, bool returnAtSignInVerbatimIdentifiers)
 {
 	this.file = file;
 	current_container = current_namespace = file;
@@ -14319,7 +14319,7 @@ public CSharpParser (SeekableStreamReader reader, CompilationSourceFile file, Re
 	lang_version = settings.Version;
 	yacc_verbose_flag = settings.VerboseParserFlag;
 	doc_support = settings.DocumentationFile != null;
-	lexer = new Tokenizer (reader, file, session);
+	lexer = new Tokenizer (reader, file, session, returnAtSignInVerbatimIdentifiers);
 	oob_stack = new Stack<object> ();
 	lbag = session.LocationsBag;
 	use_global_stacks = session.UseJayGlobalArrays;

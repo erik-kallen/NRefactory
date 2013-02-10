@@ -3889,7 +3889,7 @@ namespace ICSharpCode.NRefactory.CSharp
 				var session = new ParserSession ();
 				session.LocationsBag = new LocationsBag ();
 				var report = new Report (ctx, errorReportPrinter);
-				var parser = Driver.Parse (reader, file, module, session, report, initialLine - 1, initialColumn - 1);
+				var parser = Driver.Parse (reader, file, module, session, report, true, initialLine - 1, initialColumn - 1);
 				var top = new CompilerCompilationUnit () {
 					ModuleCompiled = module,
 					LocationsBag = session.LocationsBag,
@@ -4007,7 +4007,7 @@ namespace ICSharpCode.NRefactory.CSharp
 				var report = new Report (ctx, errorReportPrinter);
 				ParserSession session = new ParserSession ();
 				session.LocationsBag = new LocationsBag ();
-				var parser = new Mono.CSharp.CSharpParser (reader, source_file, report, session);
+				var parser = new Mono.CSharp.CSharpParser (reader, source_file, report, session, true);
 				parser.Lexer.Line += initialLocation.Line - 1;
 				parser.Lexer.Column += initialLocation.Column - 1;
 				parser.Lexer.putback_char = Tokenizer.DocumentationXref;
