@@ -635,5 +635,31 @@ class TestClass {
 			Assert.IsFalse(mrr.IsError);
 			Assert.AreEqual("System.Int32", mrr.Type.ReflectionName);
 		}
+
+		[Test]
+		public void ConversionInExplicitLambdaResult() {
+			string program = @"using System;
+class Test {
+	public object M() {
+		System.Func<int, string> f = $(int i) => null$;
+	}
+}";
+			var rr = Resolve<LambdaResolveResult>(program);
+			Assert.IsInstanceOf<ConversionResolveResult>(rr.Body);
+			Assert.That(((ConversionResolveResult)rr.Body).Conversion.IsNullLiteralConversion);
+		}
+
+		[Test]
+		public void ConversionInImplicitLambdaResult() {
+			string program = @"using System;
+class Test {
+	public object M() {
+		System.Func<int, string> f = $i => null$;
+	}
+}";
+			var rr = Resolve<LambdaResolveResult>(program);
+			Assert.IsInstanceOf<ConversionResolveResult>(rr.Body);
+			Assert.That(((ConversionResolveResult)rr.Body).Conversion.IsNullLiteralConversion);
+		}
 	}
 }
