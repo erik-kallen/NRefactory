@@ -404,10 +404,10 @@ class TestClass {
 			var conversion = GetConversion(program);
 			Assert.IsTrue(conversion.IsValid);
 			Assert.IsTrue(conversion.IsMethodGroupConversion);
-			Assert.IsInstanceOf<SpecializedMethod>(conversion.Method);
+			Assert.IsTrue(conversion.Method.IsParameterized);
 			Assert.AreEqual(
 				new[] { "System.Int32" },
-				((SpecializedMethod)conversion.Method).TypeArguments.Select(t => t.ReflectionName).ToArray());
+				conversion.Method.TypeArguments.Select(t => t.ReflectionName).ToArray());
 		}
 		
 		[Test]
@@ -541,6 +541,27 @@ class C : B {
 ";
 			var result = Resolve<MemberResolveResult>(program);
 			Assert.AreEqual("op_Addition.Foo", result.Member.FullName);
+		}
+
+		/// <summary>
+		/// Bug 10201 - Wrong generics expansion for base recursive types
+		/// </summary>
+		[Test]
+		public void TestBug10201()
+		{
+			string program = @"public interface IA<T>
+{
+}
+public class G<U, V> : IA<$G<V, string>$> 
+{}
+";
+			var rr = Resolve<TypeResolveResult>(program);
+			var baseType = rr.Type.DirectBaseTypes.First().TypeArguments.First () as ParameterizedType;
+			Assert.AreEqual("G", baseType.Name);
+			
+			Assert.AreEqual(2, baseType.TypeParameterCount);
+			Assert.AreEqual("System.String", baseType.TypeArguments [0].FullName);
+			Assert.AreEqual("System.String", baseType.TypeArguments [1].FullName);
 		}
 	}
 }

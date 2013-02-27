@@ -354,6 +354,7 @@
     <Compile Include="Analysis\ControlFlow.cs" />
     <Compile Include="Analysis\DefiniteAssignmentAnalysis.cs" />
     <Compile Include="Analysis\ReachabilityAnalysis.cs" />
+    <Compile Include="Analysis\SemanticHighlightingVisitor.cs" />
     <Compile Include="Ast\AstNode.cs" />
     <Compile Include="Ast\AstNodeCollection.cs" />
     <Compile Include="Ast\AstType.cs" />
@@ -779,6 +780,9 @@
     <Compile Include="Refactoring\CodeActions\CreateEnumValue.cs" />
     <Compile Include="Resolver\AliasTypeResolveResult.cs" />
     <Compile Include="Resolver\AliasNamespaceResolveResult.cs" />
+    <Compile Include="Resolver\ReducedExtensionMethod.cs" />
+    <Compile Include="Refactoring\CodeIssues\SimplifyAnonymousMethodToDelegateIssue.cs" />
+    <Compile Include="Refactoring\CodeIssues\CompilerErrors\CS0127ReturnMustNotBeFollowedByAnyExpression.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ICSharpCode.NRefactory\ICSharpCode.NRefactory.csproj">
@@ -787,7 +791,6 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
-  <ItemGroup />
   <ProjectExtensions>
     <MonoDevelop>
       <Properties>
