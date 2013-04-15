@@ -4768,12 +4768,11 @@ class MainClass
 			Assert.IsNotNull (provider.Find ("Math"), "'Math' not found.");
 		}
 		
-		[Ignore("Mcs bug")]
 		[Test]
 		public void TestConditionalExpression ()
 		{
 			CompletionDataList provider = CreateProvider (
-@"using System;
+				@"using System;
 
 class MainClass
 {
@@ -5264,7 +5263,6 @@ public class Test
 		/// <summary>
 		/// Bug 4624 - [AutoComplete] Attribute autocomplete inserts entire attribute class name. 
 		/// </summary>
-		[Ignore("MCS BUG")]
 		[Test]
 		public void TestBug4624()
 		{
@@ -6009,7 +6007,55 @@ public class Testing
 			});
 		}
 
+		/// <summary>
+		/// NullReferenceException when inserting space after 'in' modifier
+		/// </summary>
+		[Test]
+		public void TestCrashContravariantTypeParameter ()
+		{
+			CompletionDataList provider = CreateProvider (
+				@"public delegate void ModelCollectionChangedEventHandler<in$ $T>();
+");
+			Assert.AreEqual(0, provider.Count);
+		}
 
+		[Test]
+		public void TestSwitchCase ()
+		{
+
+			CombinedProviderTest(
+				@"using System;
+class Test
+{
+	public void Test (ConsoleColor color)
+	{
+		$switch (c$
+	}
+}
+", provider => {
+				Assert.IsNotNull(provider.Find("color"));
+			});
+		}
+
+		[Test]
+		public void TestSwitchCaseCase ()
+		{
+
+			CombinedProviderTest(
+				@"using System;
+class Test
+{
+	public void Test (ConsoleColor color)
+	{
+		switch (color) {
+			$case $
+		}
+	}
+}
+", provider => {
+				Assert.IsNotNull(provider.Find("ConsoleColor"));
+			});
+		}
 
 
 	}

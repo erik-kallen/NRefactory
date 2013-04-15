@@ -1229,6 +1229,17 @@ namespace Mono.CSharp {
 					}
 				} else {
 					am = body.Compatible (ec);
+
+					if (body.DirectMethodGroupConversion != null) {
+						var errors_printer = new SessionReportPrinter ();
+						var old = ec.Report.SetPrinter (errors_printer);
+						var expr = new ImplicitDelegateCreation (delegate_type, body.DirectMethodGroupConversion, loc) {
+							AllowSpecialMethodsInvocation = true
+						}.Resolve (ec);
+						ec.Report.SetPrinter (old);
+						if (expr != null && errors_printer.ErrorsCount == 0)
+							am = expr;
+					}
 				}
 			} catch (CompletionResult) {
 				throw;
@@ -1567,6 +1578,14 @@ namespace Mono.CSharp {
 			get { return "anonymous method"; }
 		}
 
+		//
+		// Method-group instance for lambdas which can be replaced with
+		// simple method group call
+		//
+		public MethodGroupExpr DirectMethodGroupConversion {
+			get; set;
+		}
+
 		public override bool IsIterator {
 			get {
 				return false;
@@ -1589,7 +1608,9 @@ namespace Mono.CSharp {
 		}
 
 		public override AnonymousMethodStorey Storey {
-			get { return storey; }
+			get {
+				return storey;
+			}
 		}
 
 		#endregion

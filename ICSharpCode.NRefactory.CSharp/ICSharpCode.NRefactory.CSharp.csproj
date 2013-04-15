@@ -422,7 +422,6 @@
     <Compile Include="Ast\Modifiers.cs" />
     <Compile Include="Ast\NodeType.cs" />
     <Compile Include="Ast\ObservableAstVisitor.cs" />
-    <Compile Include="Ast\old_ObservableAstVisitor.cs" />
     <Compile Include="Ast\PrimitiveType.cs" />
     <Compile Include="Ast\SimpleType.cs" />
     <Compile Include="Ast\Statements\BlockStatement.cs" />
@@ -467,7 +466,6 @@
     <Compile Include="Ast\TypeMembers\PropertyDeclaration.cs" />
     <Compile Include="Ast\TypeMembers\VariableInitializer.cs" />
     <Compile Include="CSharpProjectContent.cs" />
-    <Compile Include="Formatter\AstFormattingVisitor.cs" />
     <Compile Include="Formatter\CSharpFormattingOptions.cs" />
     <Compile Include="Formatter\Indent.cs" />
     <Compile Include="OutputVisitor\CodeDomConvertVisitor.cs" />
@@ -547,6 +545,7 @@
     <Compile Include="Refactoring\CodeActions\ConvertLambdaBodyExpressionToStatementAction.cs" />
     <Compile Include="Refactoring\CodeActions\ConvertLambdaBodyStatementToExpressionAction.cs" />
     <Compile Include="Refactoring\CodeActions\ConvertSwitchToIfAction.cs" />
+    <Compile Include="Refactoring\CodeActions\ConvertToStaticMethodAction.cs" />
     <Compile Include="Refactoring\CodeActions\CreateCustomEventImplementationAction.cs" />
     <Compile Include="Refactoring\CodeActions\CreateOverloadWithoutParameterAction.cs" />
     <Compile Include="Refactoring\CodeActions\JoinDeclarationAndAssignmentAction.cs" />
@@ -569,6 +568,7 @@
     <Compile Include="Refactoring\CodeIssues\DoubleNegationIssue.cs" />
     <Compile Include="Refactoring\CodeIssues\ExpressionIsAlwaysOfProvidedTypeIssue.cs" />
     <Compile Include="Refactoring\CodeIssues\ExpressionIsNeverOfProvidedTypeIssue.cs" />
+    <Compile Include="Refactoring\CodeIssues\ExpressionOfCompatibleTypeCastIssue.cs" />
     <Compile Include="Refactoring\CodeIssues\MethodNeverReturnsIssue.cs" />
     <Compile Include="Refactoring\CodeIssues\MethodOverloadHidesOptionalParameterIssue.cs" />
     <Compile Include="Refactoring\CodeIssues\MissingStringComparisonIssue.cs" />
@@ -784,6 +784,24 @@
     <Compile Include="Refactoring\CodeIssues\SimplifyAnonymousMethodToDelegateIssue.cs" />
     <Compile Include="Refactoring\CodeIssues\CompilerErrors\CS0127ReturnMustNotBeFollowedByAnyExpression.cs" />
     <Compile Include="Analysis\AbiComparer.cs" />
+    <Compile Include="Refactoring\CreateChangedEvent.cs" />
+    <Compile Include="Refactoring\CodeActions\SimplifyIfFlowAction.cs" />
+    <Compile Include="Refactoring\CodeActions\SimplifyIfInLoopsFlowAction.cs" />
+    <Compile Include="Refactoring\CodeIssues\NoDefaultConstructorIssue.cs" />
+    <Compile Include="Refactoring\CodeActions\InvertIfAndSimplify.cs" />
+    <Compile Include="Formatter\CSharpFormatter.cs" />
+    <Compile Include="Formatter\FormattingVisitor.cs" />
+    <Compile Include="Formatter\FormattingVisitor_TypeMembers.cs" />
+    <Compile Include="Formatter\FormattingVisitor_Global.cs" />
+    <Compile Include="Formatter\FormattingVisitor_Statements.cs" />
+    <Compile Include="Formatter\FormattingVisitor_Expressions.cs" />
+    <Compile Include="Formatter\FormattingChanges.cs" />
+    <Compile Include="Refactoring\CodeIssues\RedundantNullCheckIssue.cs" />
+    <Compile Include="Refactoring\CodeIssues\ConstructorIssues\StaticConstructorParameterIssue.cs" />
+    <Compile Include="Refactoring\CodeIssues\ConstructorIssues\StaticConstructorAccessModifierIssue.cs" />
+    <Compile Include="Refactoring\CodeIssues\RedundantBaseConstructorIssue.cs" />
+    <Compile Include="Refactoring\CodeIssues\ConstructorIssues\RedudantConstructorIssue.cs" />
+    <Compile Include="Refactoring\CodeIssues\ConstructorIssues\PublicConstructorInAbstractClass.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ICSharpCode.NRefactory\ICSharpCode.NRefactory.csproj">
@@ -792,6 +810,16 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
+  <ItemGroup>
+    <Folder Include="Completion\" />
+    <Folder Include="Refactoring\CodeIssues\" />
+    <Folder Include="Refactoring\CodeIssues\InconsistentNamingIssue\" />
+    <Folder Include="Refactoring\CodeActions\ExtractMethod\" />
+    <Folder Include="Refactoring\CodeActions\ConvertToInitializer\" />
+    <Folder Include="Refactoring\CodeIssues\FormatStringIssues\" />
+    <Folder Include="Refactoring\CodeIssues\CompilerErrors\" />
+    <Folder Include="Refactoring\CodeIssues\ConstructorIssues\" />
+  </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
       <Properties>
