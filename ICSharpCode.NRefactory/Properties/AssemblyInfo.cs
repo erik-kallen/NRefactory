@@ -33,5 +33,4 @@ using System.Runtime.InteropServices;
 
 [assembly: CLSCompliant(true)]
 
-[assembly: InternalsVisibleTo("ICSharpCode.NRefactory.Cecil")]
 [assembly: InternalsVisibleTo("ICSharpCode.NRefactory.IKVM")]

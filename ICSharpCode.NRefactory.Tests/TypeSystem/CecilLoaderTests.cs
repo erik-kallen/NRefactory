@@ -25,17 +25,17 @@ using NUnit.Framework;
 
 namespace ICSharpCode.NRefactory.TypeSystem
 {
-	[TestFixture]
+	[TestFixture, Ignore("Cecil is disabled")]
 	public class CecilLoaderTests : TypeSystemTests
 	{
 		static readonly Lazy<IUnresolvedAssembly> mscorlib = new Lazy<IUnresolvedAssembly>(
 			delegate {
-				return new CecilLoader().LoadAssemblyFile(typeof(object).Assembly.Location);
+				return new IkvmLoader().LoadAssemblyFile(typeof(object).Assembly.Location);
 			});
 		
 		static readonly Lazy<IUnresolvedAssembly> systemCore = new Lazy<IUnresolvedAssembly>(
 			delegate {
-			return new CecilLoader().LoadAssemblyFile(typeof(System.Linq.Enumerable).Assembly.Location);
+			return new IkvmLoader().LoadAssemblyFile(typeof(System.Linq.Enumerable).Assembly.Location);
 		});
 
 		public static IUnresolvedAssembly Mscorlib { get { return mscorlib.Value; } }
@@ -45,7 +45,7 @@ namespace ICSharpCode.NRefactory.TypeSystem
 		public void FixtureSetUp()
 		{
 			// use "IncludeInternalMembers" so that Cecil results match C# parser results
-			CecilLoader loader = new CecilLoader() { IncludeInternalMembers = true };
+			IkvmLoader loader = new IkvmLoader() { IncludeInternalMembers = true };
 			IUnresolvedAssembly asm = loader.LoadAssemblyFile(typeof(TestCase.SimplePublicClass).Assembly.Location);
 			compilation = new SimpleCompilation(asm, CecilLoaderTests.Mscorlib);
 		}

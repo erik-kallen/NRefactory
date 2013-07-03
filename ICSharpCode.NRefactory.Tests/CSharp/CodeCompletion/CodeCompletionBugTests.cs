@@ -278,13 +278,13 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 		
 		static readonly Lazy<IUnresolvedAssembly> systemAssembly = new Lazy<IUnresolvedAssembly>(
 			delegate {
-			var loader = new CecilLoader();
+			var loader = new IkvmLoader();
 			loader.IncludeInternalMembers = true;
 			return loader.LoadAssemblyFile(typeof(System.ComponentModel.BrowsableAttribute).Assembly.Location);
 		});
 		static readonly Lazy<IUnresolvedAssembly> systemXmlLinq = new Lazy<IUnresolvedAssembly>(
 			delegate {
-			var loader = new CecilLoader();
+			var loader = new IkvmLoader();
 			loader.IncludeInternalMembers = true;
 			return loader.LoadAssemblyFile(typeof(System.Xml.Linq.XElement).Assembly.Location);
 		});
@@ -292,14 +292,14 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 
 		static readonly Lazy<IUnresolvedAssembly> mscorlib = new Lazy<IUnresolvedAssembly>(
 			delegate {
-			var loader = new CecilLoader();
+			var loader = new IkvmLoader();
 			loader.IncludeInternalMembers = true;
 			return loader.LoadAssemblyFile(typeof(object).Assembly.Location);
 		});
 
 		static readonly Lazy<IUnresolvedAssembly> systemCore = new Lazy<IUnresolvedAssembly>(
 			delegate {
-			var loader = new CecilLoader();
+			var loader = new IkvmLoader();
 			loader.IncludeInternalMembers = true;
 			return loader.LoadAssemblyFile(typeof(System.Linq.Enumerable).Assembly.Location);
 		});

@@ -37,7 +37,7 @@ namespace ICSharpCode.NRefactory.CSharp
 		{
 			ambience = new CSharpAmbience();
 			mscorlib = CecilLoaderTests.Mscorlib;
-			var loader = new CecilLoader();
+			var loader = new IkvmLoader();
 			loader.IncludeInternalMembers = true;
 			myLib = loader.LoadAssemblyFile(typeof(CSharpAmbienceTests).Assembly.Location);
 			compilation = new SimpleCompilation(myLib, mscorlib);
