@@ -185,6 +185,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 				}
 				if (!char.IsWhiteSpace(ch) && parameter.Count > 0)
 					foundCharAfterOpenBracket = true;
+
 				switch (ch) {
 					case '{':
 						if (inString || inChar || inVerbatimString || inSingleComment || inMultiLineComment) {
@@ -279,12 +280,6 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 							inVerbatimString = true;
 						}
 						break;
-					case '\n':
-					case '\r':
-						inSingleComment = false;
-						inString = false;
-						inChar = false;
-						break;
 					case '\\':
 						if (inString || inChar) {
 							i++;
@@ -309,6 +304,13 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 							break;
 						}
 						inChar = !inChar;
+						break;
+					default:
+						if (NewLine.IsNewLine(ch)) {
+							inSingleComment = false;
+							inString = false;
+							inChar = false;
+						}
 						break;
 				}
 			}
@@ -603,12 +605,6 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 						inVerbatimString = true;
 					}
 					break;
-				case '\n':
-				case '\r':
-					inSingleComment = false;
-					inString = false;
-					inChar = false;
-					break;
 				case '\\':
 					if (inString || inChar)
 						i++;
@@ -632,6 +628,11 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					inChar = !inChar;
 					break;
 				default :
+					if (NewLine.IsNewLine(ch)) {
+						inSingleComment = false;
+						inString = false;
+						inChar = false;
+					}
 					break;
 				}
 			}

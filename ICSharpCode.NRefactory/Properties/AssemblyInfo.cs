@@ -15,6 +15,7 @@
 // FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
+using System.Runtime.CompilerServices;
 
 #region Using directives
 
@@ -31,3 +32,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("Type system and other language-independent parts of NRefactory")]
 
 [assembly: CLSCompliant(true)]
+
+[assembly: InternalsVisibleTo("ICSharpCode.NRefactory.Cecil")]
+[assembly: InternalsVisibleTo("ICSharpCode.NRefactory.IKVM")]

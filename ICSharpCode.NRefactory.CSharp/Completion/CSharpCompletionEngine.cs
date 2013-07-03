@@ -240,6 +240,13 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 				return null;
 			}
 			if (expr.Node is AstType) {
+
+				// check for namespace names
+				if (expr.Node.AncestorsAndSelf
+				    .TakeWhile (n => n is AstType)
+				    .Any (m => m.Role == NamespaceDeclaration.NamespaceNameRole))
+					return null;
+
 				// need to look at paren.parent because of "catch (<Type>.A" expression
 				if (expr.Node.Parent != null && expr.Node.Parent.Parent is CatchClause)
 					return HandleCatchClauseType(expr);
@@ -317,14 +324,14 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					bool isProtectedAllowed = ctx.CurrentTypeDefinition != null && initializerType.GetDefinition() != null ? 
 						ctx.CurrentTypeDefinition.IsDerivedFrom(initializerType.GetDefinition()) : 
 							false;
-					foreach (var m in initializerType.GetMembers (m => m.EntityType == EntityType.Field)) {
+					foreach (var m in initializerType.GetMembers (m => m.SymbolKind == SymbolKind.Field)) {
 						var f = m as IField;
 						if (f != null && (f.IsReadOnly || f.IsConst))
 						    continue;
 						if (lookup.IsAccessible (m, isProtectedAllowed))
 							contextList.AddMember(m);
 					}
-					foreach (IProperty m in initializerType.GetMembers (m => m.EntityType == EntityType.Property)) {
+					foreach (IProperty m in initializerType.GetMembers (m => m.SymbolKind == SymbolKind.Property)) {
 						if (m.CanSet && lookup.IsAccessible (m.Setter, isProtectedAllowed))
 							contextList.AddMember(m);
 					}
@@ -644,6 +651,15 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 						}
 						return null;
 					}
+					char prevCh = offset > 2 ? document.GetCharAt(offset - 2) : ';';
+					char nextCh = offset < document.TextLength ? document.GetCharAt(offset) : ' ';
+					const string allowedChars = ";,.[](){}+-*/%^?:&|~!<>=";
+
+					if ((!Char.IsWhiteSpace(nextCh) && allowedChars.IndexOf(nextCh) < 0) || !(Char.IsWhiteSpace(prevCh) || allowedChars.IndexOf(prevCh) >= 0)) {
+						if (!controlSpace)
+							return null;
+					}
+
 					if (IsInLinqContext(offset)) {
 						if (!controlSpace && !(char.IsLetter(completionChar) || completionChar == '_')) {
 							return null;
@@ -721,16 +737,11 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 						return keywordresult;
 					}
 
-					char prevCh = offset > 2 ? document.GetCharAt(offset - 2) : ';';
-					char nextCh = offset < document.TextLength ? document.GetCharAt(offset) : ' ';
-					const string allowedChars = ";,.[](){}+-*/%^?:&|~!<>=";
-
 					if ((!Char.IsWhiteSpace(nextCh) && allowedChars.IndexOf(nextCh) < 0) || !(Char.IsWhiteSpace(prevCh) || allowedChars.IndexOf(prevCh) >= 0)) {
 						if (controlSpace)
 							return DefaultControlSpaceItems(identifierStart);
-						return null;
 					}
-					
+
 					int prevTokenIndex = tokenIndex;
 					var prevToken2 = GetPreviousToken(ref prevTokenIndex, false);
 					if (prevToken2 == "delegate") {
@@ -1225,7 +1236,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 			// namespace name case
 			var ns = node as NamespaceDeclaration;
 			if (ns != null) {
-				var last = ns.Identifiers.LastOrDefault ();
+				var last = ns.NamespaceName;
 				if (last != null && location < last.EndLocation)
 					return null;
 			}
@@ -1502,7 +1513,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 							if (member is IMethod && ((IMethod)member).FullName == "System.Object.Finalize") {
 								continue;
 							}
-							if (member.EntityType == EntityType.Operator) {
+							if (member.SymbolKind == SymbolKind.Operator) {
 								continue;
 							}
 							if (member.IsExplicitInterfaceImplementation) {
@@ -2155,7 +2166,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 		
 		bool MatchDelegate(IType delegateType, IMethod method)
 		{
-			if (method.EntityType != EntityType.Method)
+			if (method.SymbolKind != SymbolKind.Method)
 				return false;
 			var delegateMethod = delegateType.GetDelegateInvokeMethod();
 			if (delegateMethod == null || delegateMethod.Parameters.Count != method.Parameters.Count) {
@@ -2206,7 +2217,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 				var convertedParameter = builder.ConvertParameter(delegateMethod.Parameters [k]);
 				if (convertedParameter.ParameterModifier == ParameterModifier.Params)
 					convertedParameter.ParameterModifier = ParameterModifier.None;
-				sb.Append(convertedParameter.GetText(FormattingPolicy));
+				sb.Append(convertedParameter.ToString(FormattingPolicy));
 				sbWithoutTypes.Append(delegateMethod.Parameters [k].Name);
 			}
 			
@@ -2604,7 +2615,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					result.AddMember(member);
 				}*/
 				foreach (var member in lookup.GetAccessibleMembers (resolveResult)) {
-					if (member.EntityType == EntityType.Indexer || member.EntityType == EntityType.Operator || member.EntityType == EntityType.Constructor || member.EntityType == EntityType.Destructor) {
+					if (member.SymbolKind == SymbolKind.Indexer || member.SymbolKind == SymbolKind.Operator || member.SymbolKind == SymbolKind.Constructor || member.SymbolKind == SymbolKind.Destructor) {
 						continue;
 					}
 					if (resolvedNode is BaseReferenceExpression && member.IsAbstract) {
@@ -2635,7 +2646,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					if (member is IMethod && ((IMethod)member).FullName == "System.Object.Finalize") {
 						continue;
 					}
-					if (member.EntityType == EntityType.Operator) {
+					if (member.SymbolKind == SymbolKind.Operator) {
 						continue;
 					}
 

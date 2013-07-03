@@ -1062,13 +1062,32 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 				var thisRR = rr.TargetResult as ThisResolveResult;
 				bool isVirtual = method.IsOverridable && !(thisRR != null && thisRR.CausesNonVirtualInvocation);
 				bool isValid = !or.IsAmbiguous && IsDelegateCompatible(method, invoke, or.IsExtensionMethodInvocation);
+				bool delegateCapturesFirstArgument = or.IsExtensionMethodInvocation || !method.IsStatic;
 				if (isValid)
-					return Conversion.MethodGroupConversion(method, isVirtual, or.IsExtensionMethodInvocation);
+					return Conversion.MethodGroupConversion(method, isVirtual, delegateCapturesFirstArgument);
 				else
-					return Conversion.InvalidMethodGroupConversion(method, isVirtual, or.IsExtensionMethodInvocation);
+					return Conversion.InvalidMethodGroupConversion(method, isVirtual, delegateCapturesFirstArgument);
 			} else {
 				return Conversion.None;
 			}
+		}
+		
+		/// <summary>
+		/// Gets whether a <paramref name="method"/> is compatible with a delegate type.
+		/// §15.2 Delegate compatibility
+		/// </summary>
+		/// <param name="method">The method to test for compatibility</param>
+		/// <param name="delegateType">The delegate type</param>
+		public bool IsDelegateCompatible(IMethod method, IType delegateType)
+		{
+			if (method == null)
+				throw new ArgumentNullException("method");
+			if (delegateType == null)
+				throw new ArgumentNullException("delegateType");
+			IMethod invoke = delegateType.GetDelegateInvokeMethod();
+			if (invoke == null)
+				return false;
+			return IsDelegateCompatible(method, invoke, false);
 		}
 		
 		/// <summary>

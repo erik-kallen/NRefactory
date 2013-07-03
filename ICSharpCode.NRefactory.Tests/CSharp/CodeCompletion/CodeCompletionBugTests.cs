@@ -209,8 +209,8 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 
 			public ICompletionData CreateTypeCompletionData (ICSharpCode.NRefactory.TypeSystem.IType type, bool fullName, bool isInAttributeContext)
 			{
-				string name = fullName ? builder.ConvertType(type).GetText() : type.Name; 
-				if (isInAttributeContext && name.EndsWith("Attribute") && name.Length > "Attribute".Length) {
+				string name = fullName ? builder.ConvertType(type).ToString() : type.Name; 
+				if (isInAttributeContext && name.EndsWith("Attribute", StringComparison.Ordinal) && name.Length > "Attribute".Length) {
 					name = name.Substring(0, name.Length - "Attribute".Length);
 				}
 				return new CompletionData (name);
@@ -218,7 +218,7 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 
 			public ICompletionData CreateMemberCompletionData(IType type, IEntity member)
 			{
-				string name = builder.ConvertType(type).GetText(); 
+				string name = builder.ConvertType(type).ToString(); 
 				return new EntityCompletionData (member, name + "."+ member.Name);
 			}
 
@@ -6057,6 +6057,48 @@ class Test
 			});
 		}
 
+		/// <summary>
+		/// Bug 11906 - Intellisense choice injects full name on edit of existing name.
+		/// </summary>
+		[Test]
+		public void TestBug11906()
+		{
+			// The bug was caused by completion popping up in the middle of a word.
+			var provider = CreateProvider(@"using System;
+using System.Threading.Tasks;
 
+enum Test_Struct {
+	Some_Value1,
+	Some_Value2,
+	Some_Value3
+}
+
+public class Test
+{
+	public static void Main (string[] args)
+	{
+		Test_Struct v1 = Test_Struct.Some_$V$Value2;
+	}
+}");
+			Assert.IsTrue(provider == null || provider.Count == 0);
+		}
+
+		[Ignore("Parser bug")]
+		[Test]
+		public void TestBugWithLambdaParameter()
+		{
+			CombinedProviderTest(@"using System.Collections.Generic;
+
+		class C
+		{
+			public static void Main (string[] args)
+			{
+				List<string> list;
+				$list.Find(l => l.Name == l.Name ? l$
+			}
+		}", provider => {
+				Assert.IsNotNull(provider.Find("l"));
+			});
+		}
 	}
 }

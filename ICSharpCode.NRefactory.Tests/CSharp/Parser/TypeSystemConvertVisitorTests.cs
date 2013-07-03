@@ -101,13 +101,14 @@ namespace ICSharpCode.NRefactory.CSharp.Parser
 		}
 
 		[Test]
-		public void AssemblyAndModuleAttributesDoNotAppearOnTypes() {
-			CSharpParser parser = new CSharpParser();
+		public void AssemblyAndModuleAttributesDoNotAppearOnTypes() 
+		{
+			var parser = new CSharpParser();
 			var cu = parser.Parse("[assembly: My1][module: My2][My3]class C {} public class My1Attribute : System.Attribute {} public class My2Attribute : System.Attribute {} public class My3Attribute : System.Attribute {}", "File.cs");
-			
+
 			var ts = cu.ToTypeSystem();
 			var compilation = new CSharpProjectContent()
-			    .AddOrUpdateFiles(ts)
+				.AddOrUpdateFiles(ts)
 				.AddAssemblyReferences(new[] { CecilLoaderTests.Mscorlib })
 				.CreateCompilation();
 			var type = ReflectionHelper.ParseReflectionName("C").Resolve(compilation).GetDefinition();
