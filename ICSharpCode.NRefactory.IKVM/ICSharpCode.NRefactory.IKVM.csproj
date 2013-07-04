@@ -9,8 +9,8 @@
     <OutputType>Library</OutputType>
     <RootNamespace>ICSharpCode.NRefactory.IKVM</RootNamespace>
     <AssemblyName>ICSharpCode.NRefactory.IKVM</AssemblyName>
-    <SignAssembly>false</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\ICSharpCode.NRefactory.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\..\..\Saltarelle.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

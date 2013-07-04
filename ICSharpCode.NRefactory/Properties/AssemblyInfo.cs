@@ -33,4 +33,4 @@ using System.Runtime.InteropServices;
 
 [assembly: CLSCompliant(true)]
 
-[assembly: InternalsVisibleTo("ICSharpCode.NRefactory.IKVM")]
+[assembly: InternalsVisibleTo("ICSharpCode.NRefactory.IKVM, PublicKey=0024000004800000940000000602000000240000525341310004000001000100979038eaf816a2cee8aa924d5209b0d9a8e8e0e3a2bee7f532b3caaff6019fc5d9d7cb5b411ff06a74082c105a70893dd0e95ee5d9c42cee283decc7c09df19c7a6df3ac7e64e978d39d2f338f0862928ee8b9f2d1fee03ab50492d65c2a4940f12f3dd5dc775f40ca83d635af5345c9453c64401ec22cad0f12c3b070cbe099")]
