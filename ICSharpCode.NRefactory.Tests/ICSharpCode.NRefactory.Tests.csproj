@@ -281,6 +281,7 @@
     <Compile Include="TypeSystem\GetAllBaseTypesTest.cs" />
     <Compile Include="TypeSystem\GetMembersTests.cs" />
     <None Include="TypeSystem\LazyLoadedCecilLoaderTests.cs" />
+    <Compile Include="TypeSystem\InheritanceHelperTests.cs" />
     <Compile Include="TypeSystem\ReflectionHelperTests.cs" />
     <None Include="TypeSystem\SerializedCecilLoaderTests.cs" />
     <Compile Include="TypeSystem\StructureTests.cs" />
