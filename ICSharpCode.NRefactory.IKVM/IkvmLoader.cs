@@ -353,6 +353,8 @@ namespace ICSharpCode.NRefactory.TypeSystem
 
 		IConstantValue CreateSimpleConstantValue(ITypeReference type, object value)
 		{
+			if (ReferenceEquals (value, Missing.Value))
+				return null;
 			return interningProvider.Intern(new SimpleConstantValue(type, interningProvider.InternValue(value)));
 		}
 		#endregion
@@ -744,7 +746,14 @@ namespace ICSharpCode.NRefactory.TypeSystem
 				}
 				ctorParameterTypes = interningProvider.InternList(ctorParameterTypes);
 			}
-			return interningProvider.Intern(new UnresolvedAttributeBlob(attributeType, ctorParameterTypes, attribute.__GetBlob ()));
+			byte[] blob;
+			try {
+				blob = attribute.__GetBlob ();
+			} catch (Exception e) {
+				blob = new byte[0];
+				Console.Error.WriteLine ("IKVM error while getting blob:" + e);
+			}
+			return interningProvider.Intern(new UnresolvedAttributeBlob(attributeType, ctorParameterTypes, blob));
 		}
 		#endregion
 
