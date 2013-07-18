@@ -83,7 +83,8 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			public override void VisitReturnStatement(ReturnStatement returnStatement)
 			{
 				base.VisitReturnStatement(returnStatement);
-				CheckConversion(ctx.GetExpectedType (returnStatement.Expression), returnStatement.Expression);			
+				if (!returnStatement.Expression.IsNull)
+					CheckConversion(ctx.GetExpectedType (returnStatement.Expression), returnStatement.Expression);			
 			}
 
 			public override void VisitInvocationExpression(InvocationExpression invocationExpression)
@@ -92,6 +93,12 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				foreach (var expr in invocationExpression.Arguments) {
 					CheckConversion(ctx.GetExpectedType(expr), expr);		
 				}
+			}
+
+			public override void VisitFixedStatement(FixedStatement fixedStatement)
+			{
+				// TODO: Check the initializer - but it can't contain a type cast anyways.
+				fixedStatement.EmbeddedStatement.AcceptVisitor (this);
 			}
 
 			public override void VisitArrayInitializerExpression(ArrayInitializerExpression arrayInitializerExpression)

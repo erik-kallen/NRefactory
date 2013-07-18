@@ -408,7 +408,7 @@
     <Compile Include="CSharp\CodeActions\CreateChangedEventTests.cs" />
     <Compile Include="CSharp\CodeActions\SimplifyIfFlowTests.cs" />
     <Compile Include="CSharp\CodeActions\SimplifyIfFlowInLoopsTests.cs" />
-    <Compile Include="CSharp\CodeIssues\NoDefaultConstructorIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\CS1729TypeHasNoConstructorWithNArgumentsIssueTests.cs" />
     <Compile Include="CSharp\CodeActions\InvertIfAndSimplifyTests.cs" />
     <Compile Include="FormattingTests\TestExpressionFormatting.cs" />
     <Compile Include="CSharp\CodeIssues\RedundantComparisonWithNullIssueTests.cs">
@@ -434,6 +434,8 @@
     <Compile Include="FormattingTests\TestGlobalLevelFormatting.cs" />
     <Compile Include="CSharp\CodeIssues\ConditionalTernaryEqualBranchTests.cs" />
     <Compile Include="CSharp\CodeIssues\ThreadStaticAtInstanceFieldTests.cs" />
+    <Compile Include="CSharp\CodeActions\MetaTests.cs" />
+    <Compile Include="CSharp\CodeCompletion\FormatItemTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ICSharpCode.NRefactory.CSharp\ICSharpCode.NRefactory.CSharp.csproj">

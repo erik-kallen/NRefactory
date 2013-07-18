@@ -207,7 +207,7 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 				return new CompletionData (entity.Name);
 			}
 
-			public ICompletionData CreateTypeCompletionData (ICSharpCode.NRefactory.TypeSystem.IType type, bool fullName, bool isInAttributeContext)
+			public ICompletionData CreateTypeCompletionData (ICSharpCode.NRefactory.TypeSystem.IType type, bool fullName, bool isInAttributeContext, bool addForTypeCreation)
 			{
 				string name = fullName ? builder.ConvertType(type).ToString() : type.Name; 
 				if (isInAttributeContext && name.EndsWith("Attribute", StringComparison.Ordinal) && name.Length > "Attribute".Length) {
@@ -258,7 +258,7 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 				return new OverrideCompletionData (m.Name, declarationBegin);
 			}
 
-			public ICompletionData CreateImportCompletionData(IType type, bool useFullName)
+			public ICompletionData CreateImportCompletionData(IType type, bool useFullName, bool addForTypeCreation)
 			{
 				return new ImportCompletionData (type, useFullName);
 			}
@@ -267,7 +267,12 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 			{
 				return Enumerable.Empty<ICompletionData> ();
 			}
-			
+
+			public ICompletionData CreateFormatItemCompletionData(string format, string description, object example)
+			{
+				return new CompletionData (format + " - " + description +":" + example);
+			}
+
 			public IEnumerable<ICompletionData> CreatePreProcessorDefinesCompletionData ()
 			{
 				yield return new CompletionData ("DEBUG");
@@ -373,18 +378,20 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 				mb.AddSymbol(sym);
 			}
 			var engine = new CSharpCompletionEngine(doc, mb, new TestFactory(new CSharpResolver (rctx)), pctx, rctx);
-
+			engine.AutomaticallyAddImports = true;
 			engine.EolMarker = Environment.NewLine;
 			engine.FormattingPolicy = FormattingOptionsFactory.CreateMono();
 			return engine;
 		}
-
-		public static CompletionDataList CreateProvider(string text, bool isCtrlSpace, params IUnresolvedAssembly[] references)
+		
+		public static CompletionDataList CreateProvider(string text, bool isCtrlSpace, Action<CSharpCompletionEngine> engineCallback, params IUnresolvedAssembly[] references)
 		{
 			int cursorPosition;
 			var engine = CreateEngine(text, out cursorPosition, references);
+			if (engineCallback != null)
+				engineCallback(engine);
 			var data = engine.GetCompletionData (cursorPosition, isCtrlSpace);
-			
+
 			return new CompletionDataList () {
 				Data = data,
 				AutoCompleteEmptyMatch = engine.AutoCompleteEmptyMatch,
@@ -393,6 +400,11 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 			};
 		}
 		
+		public static CompletionDataList CreateProvider(string text, bool isCtrlSpace, params IUnresolvedAssembly[] references)
+		{
+			return CreateProvider(text, isCtrlSpace, null, references);
+		}
+
 		Tuple<ReadOnlyDocument, CSharpCompletionEngine> GetContent(string text, SyntaxTree syntaxTree)
 		{
 			var doc = new ReadOnlyDocument(text);
@@ -4291,7 +4303,7 @@ public class Test
 @"
 public class Test
 {
-	$public $
+	$public p$
 }
 
 ");
@@ -6099,6 +6111,22 @@ public class Test
 		}", provider => {
 				Assert.IsNotNull(provider.Find("l"));
 			});
+		}
+
+		[Test]
+		public void TestLexerBug ()
+		{
+			CompletionDataList provider = CreateProvider (
+				@"
+public class TestMe : System.Object
+{
+/*
+
+	//*/
+	$override $
+}");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNotNull (provider.Find ("Equals"), "method 'Equals' not found.");
 		}
 	}
 }

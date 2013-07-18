@@ -356,7 +356,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 								IsInPreprocessorDirective = true;
 							break; 
 						case '/':
-							if (IsInString || IsInChar || IsInVerbatimString || IsInSingleComment)
+							if (IsInString || IsInChar || IsInVerbatimString || IsInSingleComment || IsInMultiLineComment)
 								break;
 							if (nextCh == '/') {
 								i++;
@@ -444,11 +444,11 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 			lexer.Parse();
 			return
 				lexer.IsInSingleComment || 
-				lexer.IsInString ||
-				lexer.IsInVerbatimString ||
-				lexer.IsInChar ||
-				lexer.IsInMultiLineComment || 
-				lexer.IsInPreprocessorDirective;
+					lexer.IsInString ||
+					lexer.IsInVerbatimString ||
+					lexer.IsInChar ||
+					lexer.IsInMultiLineComment || 
+					lexer.IsInPreprocessorDirective;
 		}
 
 		protected bool IsInsideDocComment ()
@@ -727,16 +727,17 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 			return result;
 		}
 		
-//		string cachedText = null;
-		
 		protected virtual void Reset ()
 		{
-//			cachedText = null;
+			memberText = null;
 		}
-		
+
+		Tuple<string, TextLocation> memberText;
 		protected Tuple<string, TextLocation> GetMemberTextToCaret()
 		{
-			return CompletionContextProvider.GetMemberTextToCaret(offset, currentType, currentMember);
+			if (memberText == null)
+				memberText = CompletionContextProvider.GetMemberTextToCaret(offset, currentType, currentMember);
+			return memberText;
 		}
 		
 		protected ExpressionResult GetInvocationBeforeCursor(bool afterBracket)
