@@ -280,8 +280,8 @@
     <Compile Include="TypeSystem\CyclicProjectDependency.cs" />
     <Compile Include="TypeSystem\GetAllBaseTypesTest.cs" />
     <Compile Include="TypeSystem\GetMembersTests.cs" />
-    <None Include="TypeSystem\LazyLoadedCecilLoaderTests.cs" />
     <Compile Include="TypeSystem\InheritanceHelperTests.cs" />
+    <None Include="TypeSystem\LazyLoadedCecilLoaderTests.cs" />
     <Compile Include="TypeSystem\ReflectionHelperTests.cs" />
     <None Include="TypeSystem\SerializedCecilLoaderTests.cs" />
     <Compile Include="TypeSystem\StructureTests.cs" />
@@ -436,6 +436,7 @@
     <Compile Include="CSharp\CodeIssues\ThreadStaticAtInstanceFieldTests.cs" />
     <Compile Include="CSharp\CodeActions\MetaTests.cs" />
     <Compile Include="CSharp\CodeCompletion\FormatItemTests.cs" />
+    <Compile Include="CSharp\CodeActions\LinqFluentToQueryTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ICSharpCode.NRefactory.CSharp\ICSharpCode.NRefactory.CSharp.csproj">

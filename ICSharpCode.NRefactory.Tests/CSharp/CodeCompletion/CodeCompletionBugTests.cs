@@ -39,6 +39,7 @@ using ICSharpCode.NRefactory.TypeSystem;
 using NUnit.Framework;
 using ICSharpCode.NRefactory.CSharp.Resolver;
 using ICSharpCode.NRefactory.CSharp.Refactoring;
+using System.Threading.Tasks;
 
 namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 {
@@ -224,6 +225,11 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 
 
 			public ICompletionData CreateLiteralCompletionData (string title, string description, string insertText)
+			{
+				return new CompletionData (title);
+			}
+
+			public ICompletionData CreateXmlDocCompletionData (string title, string description, string insertText)
 			{
 				return new CompletionData (title);
 			}
@@ -6128,5 +6134,55 @@ public class TestMe : System.Object
 			Assert.IsNotNull (provider, "provider not found.");
 			Assert.IsNotNull (provider.Find ("Equals"), "method 'Equals' not found.");
 		}
+
+		/// <summary>
+		/// Bug 13366 - Task result cannot be resolved in incomplete task continution
+		/// </summary>
+		[Test]
+		public void TestBug13366 ()
+		{
+			var provider = CreateProvider (
+				@"using System;
+using System.Threading.Tasks;
+
+public class TestMe
+{
+	
+	void Test ()
+	{
+		$Task.Factory.StartNew (() => 5).ContinueWith (t => t.$
+	}
+}");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNotNull (provider.Find ("Result"), "property 'Result' not found.");
+		}
+
+		[Ignore("Fixme")]
+		[Test]
+		public void TestBug13366Case2 ()
+		{
+			var provider = CreateProvider (
+				@"using System;
+
+class A { public void AMethod () {} }
+class B { public void BMethod () {} }
+
+public class TestMe
+{
+	void Foo(Action<A> act) {}
+	void Foo(Action<B> act) {}
+	
+	void Test ()
+	{
+		$Foo(a => a.$
+	}
+}");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNotNull (provider.Find ("AMethod"), "method 'AMethod' not found.");
+			Assert.IsNotNull (provider.Find ("BMethod"), "method 'BMethod' not found.");
+		}
+
+
+
 	}
 }

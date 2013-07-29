@@ -1031,6 +1031,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					AstNode n = identifierStart.Node;
 					if (n.Parent is NamedArgumentExpression)
 						n = n.Parent;
+
 					if (n != null && n.Parent is AnonymousTypeCreateExpression) {
 						AutoSelect = false;
 					}
@@ -1058,7 +1059,10 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 							return result;
 					}
 					
-					if (n != null && n.Parent is InvocationExpression) {
+					if (n != null && n.Parent is InvocationExpression ||
+					    n.Parent is ParenthesizedExpression && n.Parent.Parent is InvocationExpression) {
+						if (n.Parent is ParenthesizedExpression)
+							n = n.Parent;
 						var invokeParent = (InvocationExpression)n.Parent;
 						var invokeResult = ResolveExpression(
 							invokeParent.Target
@@ -3051,7 +3055,7 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 				}
 			}
 			
-			baseUnit = ParseStub("a", false);
+			baseUnit = ParseStub("ToString()", false);
 			var curNode = baseUnit.GetNodeAt(location);
 			// hack for local variable declaration missing ';' issue - remove that if it works.
 			if (curNode is EntityDeclaration || baseUnit.GetNodeAt<Expression>(location) == null && baseUnit.GetNodeAt<MemberType>(location) == null) {
@@ -3452,104 +3456,104 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 					);
 			}
 			
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"c",
 				"Set text in a code-like font"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"code",
 				"Set one or more lines of source code or program output"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"example",
 				"Indicate an example"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"exception",
 				"Identifies the exceptions a method can throw",
-				"exception cref=\"|\"></exception>"
+				"exception cref=\"|\"></exception"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"include",
 				"Includes comments from a external file",
-				"include file=\"|\" path=\"\">"
+				"include file=\"|\" path=\"\""
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"inheritdoc",
 				"Inherit documentation from a base class or interface",
 				"inheritdoc/"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"list",
 				"Create a list or table",
-				"list type=\"|\">"
+				"list type=\"|\""
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"listheader",
 				"Define the heading row"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"item",
 				"Defines list or table item"
 				);
 			
-			yield return factory.CreateLiteralCompletionData("term", "A term to define");
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData("term", "A term to define");
+			yield return factory.CreateXmlDocCompletionData(
 				"description",
 				"Describes a list item"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"para",
 				"Permit structure to be added to text"
 				);
 			
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"param",
 				"Describe a parameter for a method or constructor",
-				"param name=\"|\">"
+				"param name=\"|\""
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"paramref",
 				"Identify that a word is a parameter name",
-				"paramref name=\"|\"/>"
+				"paramref name=\"|\"/"
 				);
 			
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"permission",
 				"Document the security accessibility of a member",
 				"permission cref=\"|\""
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"remarks",
 				"Describe a type"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"returns",
 				"Describe the return value of a method"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"see",
 				"Specify a link",
-				"see cref=\"|\"/>"
+				"see cref=\"|\"/"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"seealso",
 				"Generate a See Also entry",
-				"seealso cref=\"|\"/>"
+				"seealso cref=\"|\"/"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"summary",
 				"Describe a member of a type"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"typeparam",
 				"Describe a type parameter for a generic type or method"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"typeparamref",
 				"Identify that a word is a type parameter name"
 				);
-			yield return factory.CreateLiteralCompletionData(
+			yield return factory.CreateXmlDocCompletionData(
 				"value",
 				"Describe a property"
 				);

@@ -236,7 +236,7 @@ namespace Test
 		{
 			CSharpFormattingOptions policy = FormattingOptionsFactory.CreateMono ();
 			policy.BlankLinesBetweenMembers = 1;
-			
+
 			var adapter = Test (policy, @"class Test
 {
 	void AMethod ()
@@ -262,7 +262,7 @@ namespace Test
 	{
 	}
 }", FormattingMode.Intrusive);
-			
+
 			policy.BlankLinesBetweenMembers = 0;
 			Continue (policy, adapter, @"class Test
 {
@@ -277,8 +277,175 @@ namespace Test
 	}
 }", FormattingMode.Intrusive);
 		}
-		
-		
+
+		[Test]
+		public void TestBlankLinesAroundRegion ()
+		{
+			CSharpFormattingOptions policy = FormattingOptionsFactory.CreateMono ();
+			policy.BlankLinesAroundRegion = 2;
+
+			var adapter = Test (policy, @"class Test
+{
+	#region FooBar
+	
+	void AMethod ()
+	{
+	}
+	
+	#endregion
+}", @"class Test
+{
+
+
+	#region FooBar
+
+	void AMethod ()
+	{
+	}
+
+	#endregion
+
+
+}", FormattingMode.Intrusive);
+
+			policy.BlankLinesAroundRegion = 0;
+			Continue (policy, adapter, @"class Test
+{
+	#region FooBar
+
+	void AMethod ()
+	{
+	}
+
+	#endregion
+}", FormattingMode.Intrusive);
+		}
+
+		[Test]
+		public void TestBlankLinesInsideRegion ()
+		{
+			CSharpFormattingOptions policy = FormattingOptionsFactory.CreateMono ();
+			policy.BlankLinesInsideRegion = 2;
+			var adapter = Test (policy, @"class Test
+{
+
+	#region FooBar
+	void AMethod ()
+	{
+	}
+	#endregion
+
+}", @"class Test
+{
+
+	#region FooBar
+
+
+	void AMethod ()
+	{
+	}
+
+
+	#endregion
+
+}", FormattingMode.Intrusive);
+
+			policy.BlankLinesInsideRegion = 0;
+			Continue (policy, adapter, @"class Test
+{
+
+	#region FooBar
+	void AMethod ()
+	{
+	}
+	#endregion
+
+}", FormattingMode.Intrusive);
+		}
+
+		/// <summary>
+		/// Bug 13373 - XS adding linefeeds within #ifs
+		/// </summary>
+		[Test]
+		public void TestBug13373_Global ()
+		{
+			CSharpFormattingOptions policy = FormattingOptionsFactory.CreateMono ();
+
+			Test (policy, @"
+#if false
+class Test2
+{
+}
+#endif
+",
+			                    @"
+#if false
+class Test2
+{
+}
+#endif
+", FormattingMode.Intrusive);
+
+		}
+
+		[Test]
+		public void TestBug13373_TypeLevel ()
+		{
+			CSharpFormattingOptions policy = FormattingOptionsFactory.CreateMono ();
+
+			Test (policy, 
+@"class Foo
+{
+	#if false
+	class Test2
+	{
+	}
+	#endif
+}
+",
+@"class Foo
+{
+	#if false
+	class Test2
+	{
+	}
+	#endif
+}
+", FormattingMode.Intrusive);
+
+		}
+
+		[Test]
+		public void TestBug13373_StatementLevel ()
+		{
+			CSharpFormattingOptions policy = FormattingOptionsFactory.CreateMono ();
+
+			Test (policy, 
+			                    @"class Foo
+{
+	void Test ()
+	{
+		#if false
+		class Test2
+		{
+		}
+		#endif
+	}
+}",
+@"class Foo
+{
+	void Test ()
+	{
+		#if false
+		class Test2
+		{
+		}
+		#endif
+	}
+}", FormattingMode.Intrusive);
+
+		}
+
 		
 	}
 }
