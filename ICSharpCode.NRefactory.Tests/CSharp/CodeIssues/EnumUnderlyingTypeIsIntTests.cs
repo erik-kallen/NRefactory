@@ -1,10 +1,10 @@
 ﻿// 
-// ContextAction.cs
-//  
-// Author:
-//       Mike Krüger <mkrueger@novell.com>
+// EnumUnderlyingTypeIsIntTests.cs
 // 
-// Copyright (c) 2011 Mike Krüger <mkrueger@novell.com>
+// Author:
+//      Luís Reis <luiscubal@gmail.com>
+// 
+// Copyright (c) 2013 Luís Reis
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,15 +23,67 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-using System;
-using System.Threading;
-using System.Collections.Generic;
 
-namespace ICSharpCode.NRefactory.CSharp.Refactoring
+using ICSharpCode.NRefactory.CSharp.CodeActions;
+using ICSharpCode.NRefactory.CSharp.Refactoring;
+using NUnit.Framework;
+
+namespace ICSharpCode.NRefactory.CSharp.CodeIssues
 {
-	public interface ICodeActionProvider
+	public class EnumUnderlyingTypeIsIntTests : InspectionActionTestBase
 	{
-		IEnumerable<CodeAction> GetActions (RefactoringContext context);
+		[Test]
+		public void TestCase()
+		{
+			Test<EnumUnderlyingTypeIsIntIssue>(@"
+public enum Foo : int
+{
+	Bar
+}", @"
+public enum Foo
+{
+	Bar
+}");
+		}
+
+		[Test]
+		public void TestNestedCase()
+		{
+			Test<EnumUnderlyingTypeIsIntIssue>(@"
+class Outer
+{
+	public enum Foo : int
+	{
+		Bar
+	}
+}", @"
+class Outer
+{
+	public enum Foo
+	{
+		Bar
+	}
+}");
+		}
+
+		[Test]
+		public void TestDisabledForNoUnderlyingType()
+		{
+			Test<EnumUnderlyingTypeIsIntIssue>(@"
+public enum Foo
+{
+	Bar
+}", 0);
+		}
+
+		[Test]
+		public void TestDisabledForOtherTypes()
+		{
+			Test<EnumUnderlyingTypeIsIntIssue>(@"
+public enum Foo : byte
+{
+	Bar
+}", 0);
+		}
 	}
 }
-

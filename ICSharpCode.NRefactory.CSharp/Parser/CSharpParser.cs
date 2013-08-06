@@ -163,7 +163,7 @@ namespace ICSharpCode.NRefactory.CSharp
 				if (memberName.Left != null) {
 					result = new MemberType ();
 					result.AddChild (ConvertToType (memberName.Left), MemberType.TargetRole);
-					var loc = LocationsBag.GetLocations (memberName.Left);
+					var loc = LocationsBag.GetLocations (memberName);
 					if (loc != null)
 						result.AddChild (new CSharpTokenNode (Convert (loc [0]), Roles.Dot), Roles.Dot);
 					result.AddChild (Identifier.Create (memberName.Name, Convert (memberName.Location)), Roles.Identifier);
@@ -2909,7 +2909,9 @@ namespace ICSharpCode.NRefactory.CSharp
 					
 					var commaLocations = LocationsBag.GetLocations (arrayCreationExpression.Arguments);
 					for (int i = 0; i < arrayCreationExpression.Arguments.Count; i++) {
-						result.AddChild ((Expression)arrayCreationExpression.Arguments [i].Accept (this), Roles.Argument);
+						var arg = arrayCreationExpression.Arguments [i];
+						if (arg != null)
+							result.AddChild ((Expression)arg.Accept (this), Roles.Argument);
 						if (commaLocations != null && i < commaLocations.Count)
 							result.AddChild (new CSharpTokenNode (Convert (commaLocations [i]), Roles.Comma), Roles.Comma);
 					}
@@ -3420,7 +3422,10 @@ namespace ICSharpCode.NRefactory.CSharp
 					result.AddChild (ConvertToType (join.IdentifierType), QueryJoinClause.TypeRole);
 
 				result.AddChild (Identifier.Create (join.JoinVariable.Name, Convert (join.JoinVariable.Location)), QueryJoinClause.JoinIdentifierRole);
-				
+
+				if (join.IdentifierType != null)
+					result.AddChild (ConvertToType (join.IdentifierType), QueryJoinClause.TypeRole);
+
 				if (location != null)
 					result.AddChild (new CSharpTokenNode (Convert (location [0]), QueryJoinClause.InKeywordRole), QueryJoinClause.InKeywordRole);
 
@@ -3661,22 +3666,22 @@ namespace ICSharpCode.NRefactory.CSharp
 				} else if (!GenerateTypeSystemMode) {
 					var pragmaDirective = special as SpecialsBag.PragmaPreProcessorDirective;
 					if (pragmaDirective != null) {
-						var pragma = new PragmaWarningPreprocssorDirective(new TextLocation(pragmaDirective.Line, pragmaDirective.Col), new TextLocation(pragmaDirective.EndLine, pragmaDirective.EndCol));
+						var pragma = new PragmaWarningPreprocessorDirective(new TextLocation(pragmaDirective.Line, pragmaDirective.Col), new TextLocation(pragmaDirective.EndLine, pragmaDirective.EndCol));
 						pragma.AddChild(
 							new CSharpTokenNode (
 								new TextLocation(pragmaDirective.Line, pragmaDirective.Col),
-								PragmaWarningPreprocssorDirective.PragmaKeywordRole
+								PragmaWarningPreprocessorDirective.PragmaKeywordRole
 							),
-							PragmaWarningPreprocssorDirective.PragmaKeywordRole
+							PragmaWarningPreprocessorDirective.PragmaKeywordRole
 						);
 						pragma.AddChild(
 							new CSharpTokenNode (
 							new TextLocation(pragmaDirective.Line, pragmaDirective.WarningColumn),
-							PragmaWarningPreprocssorDirective.WarningKeywordRole
+							PragmaWarningPreprocessorDirective.WarningKeywordRole
 							),
-							PragmaWarningPreprocssorDirective.WarningKeywordRole
+							PragmaWarningPreprocessorDirective.WarningKeywordRole
 							);
-						var pragmaRole = pragmaDirective.Disalbe ? PragmaWarningPreprocssorDirective.DisableKeywordRole : PragmaWarningPreprocssorDirective.RestoreKeywordRole;
+						var pragmaRole = pragmaDirective.Disalbe ? PragmaWarningPreprocessorDirective.DisableKeywordRole : PragmaWarningPreprocessorDirective.RestoreKeywordRole;
 						pragma.AddChild(
 							new CSharpTokenNode (
 								new TextLocation(pragmaDirective.Line, pragmaDirective.DisableRestoreColumn),
@@ -3686,7 +3691,7 @@ namespace ICSharpCode.NRefactory.CSharp
 						);
 
 						foreach (var code in pragmaDirective.Codes) {
-							pragma.AddChild((PrimitiveExpression)conversionVisitor.Visit (code), PragmaWarningPreprocssorDirective.WarningRole); 
+							pragma.AddChild((PrimitiveExpression)conversionVisitor.Visit (code), PragmaWarningPreprocessorDirective.WarningRole); 
 						}
 						newLeaf = pragma;
 						role = Roles.PreProcessorDirective;
@@ -3695,7 +3700,7 @@ namespace ICSharpCode.NRefactory.CSharp
 
 					var lineDirective = special as SpecialsBag.LineProcessorDirective;
 					if (lineDirective != null) {
-						var pragma = new LinePreprocssorDirective(new TextLocation(lineDirective.Line, lineDirective.Col), new TextLocation(lineDirective.EndLine, lineDirective.EndCol));
+						var pragma = new LinePreprocessorDirective(new TextLocation(lineDirective.Line, lineDirective.Col), new TextLocation(lineDirective.EndLine, lineDirective.EndCol));
 						pragma.LineNumber = lineDirective.LineNumber;
 						pragma.FileName = lineDirective.FileName;
 						newLeaf = pragma;
@@ -3725,11 +3730,11 @@ namespace ICSharpCode.NRefactory.CSharp
 				for (int i = 0; i < top.SpecialsBag.Specials.Count; i++) {
 					var newLine = top.SpecialsBag.Specials[i] as SpecialsBag.NewLineToken;
 					if (newLine != null) {
-						AstNode newLeaf;
+						NewLineNode newLeaf = new NewLineNode(new TextLocation (newLine.Line, newLine.Col + 1));
 						if (newLine.NewLine == SpecialsBag.NewLine.Unix) {
-							newLeaf = new UnixNewLine (new TextLocation (newLine.Line, newLine.Col + 1));
+							newLeaf.NewLineType = UnicodeNewline.LF;
 						} else {
-							newLeaf = new WindowsNewLine (new TextLocation (newLine.Line, newLine.Col + 1));
+							newLeaf.NewLineType = UnicodeNewline.CRLF;
 						}
 						InsertComment(ref insertionPoint, newLeaf, Roles.NewLine, false, conversionVisitor.Unit);
 					}

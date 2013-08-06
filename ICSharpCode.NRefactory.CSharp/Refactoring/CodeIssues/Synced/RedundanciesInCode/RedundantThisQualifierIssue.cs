@@ -1,4 +1,4 @@
-﻿// 
+// 
 // RedundantThisInspector.cs
 //  
 // Author:
@@ -24,14 +24,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-using System;
-using ICSharpCode.NRefactory.PatternMatching;
 using System.Collections.Generic;
 using ICSharpCode.NRefactory.TypeSystem;
 using ICSharpCode.NRefactory.Semantics;
 using ICSharpCode.NRefactory.CSharp.Resolver;
 using System.Linq;
 using ICSharpCode.NRefactory.Refactoring;
+using System.Diagnostics;
 
 namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
@@ -40,34 +39,30 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 	/// </summary>
 	[IssueDescription("Redundant 'this.' qualifier",
 	       Description= "'this.' is redundant and can safely be removed.",
-	       Category = IssueCategories.Redundancies,
-	       Severity = Severity.Hint,
+	       Category = IssueCategories.RedundanciesInCode,
+	       Severity = Severity.Warning,
 	       IssueMarker = IssueMarker.GrayOut,
 	       ResharperDisableKeyword = "RedundantThisQualifier")]
-	public class RedundantThisQualifierIssue : ICodeIssueProvider
+	[SubIssueAttribute(RedundantThisQualifierIssue.InsideConstructors, Severity = Severity.None)]
+	[SubIssueAttribute(RedundantThisQualifierIssue.EverywhereElse)]
+	public class RedundantThisQualifierIssue : GatherVisitorCodeIssueProvider
 	{
-		bool ignoreConstructors = true;
+		public const string InsideConstructors = "Inside constructors";
+		public const string EverywhereElse = "Everywhere else";
 
-		/// <summary>
-		/// Specifies whether to ignore redundant 'this' in constructors.
-		/// "this.Name = name;"
-		/// </summary>
-		public bool IgnoreConstructors {
-			get {
-				return ignoreConstructors;
-			}
-			set {
-				ignoreConstructors = value;
-			}
-		}
-		
-		public IEnumerable<CodeIssue> GetIssues(BaseRefactoringContext context)
+		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
 		{
-			return new GatherVisitor(context, this).GetIssues();
+			return new GatherVisitor(context, this);
 		}
 
 		class GatherVisitor : GatherVisitorBase<RedundantThisQualifierIssue>
 		{
+			bool InsideConstructors {
+				get {
+					return SubIssue == RedundantThisQualifierIssue.InsideConstructors;
+				}
+			}
+
 			public GatherVisitor (BaseRefactoringContext ctx, RedundantThisQualifierIssue qualifierDirectiveEvidentIssueProvider) : base (ctx, qualifierDirectiveEvidentIssueProvider)
 			{
 			}
@@ -85,9 +80,68 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			
 			public override void VisitConstructorDeclaration(ConstructorDeclaration constructorDeclaration)
 			{
-				if (QualifierDirectiveEvidentIssueProvider.IgnoreConstructors)
-					return;
-				base.VisitConstructorDeclaration(constructorDeclaration);
+				if (InsideConstructors)
+					base.VisitConstructorDeclaration(constructorDeclaration);
+			}
+
+			public override void VisitMethodDeclaration(MethodDeclaration methodDeclaration)
+			{
+				if (!InsideConstructors)
+					base.VisitMethodDeclaration(methodDeclaration);
+			}
+
+			public override void VisitIndexerDeclaration(IndexerDeclaration indexerDeclaration)
+			{
+				if (!InsideConstructors)
+					base.VisitIndexerDeclaration(indexerDeclaration);
+			}
+
+			public override void VisitCustomEventDeclaration(CustomEventDeclaration eventDeclaration)
+			{
+				if (!InsideConstructors)
+					base.VisitCustomEventDeclaration(eventDeclaration);
+			}
+
+			public override void VisitDestructorDeclaration(DestructorDeclaration destructorDeclaration)
+			{
+				if (!InsideConstructors)
+					base.VisitDestructorDeclaration(destructorDeclaration);
+			}
+
+			public override void VisitFieldDeclaration(FieldDeclaration fieldDeclaration)
+			{
+				if (!InsideConstructors)
+					base.VisitFieldDeclaration(fieldDeclaration);
+			}
+
+			public override void VisitOperatorDeclaration(OperatorDeclaration operatorDeclaration)
+			{
+				if (!InsideConstructors)
+					base.VisitOperatorDeclaration(operatorDeclaration);
+			}
+
+			public override void VisitPropertyDeclaration(PropertyDeclaration propertyDeclaration)
+			{
+				if (!InsideConstructors)
+					base.VisitPropertyDeclaration(propertyDeclaration);
+			}
+			
+			// We keep this stack so that we can check for cases where a field is used in the initializer
+			// of a variable declaration. Currently the resolver does not resolve the variable name
+			// to the variable until after the end of the statement, which makes this workaround necessary.
+			Stack<VariableInitializer> currentDeclaringVariabes = new Stack<VariableInitializer> ();
+			public override void VisitVariableDeclarationStatement(VariableDeclarationStatement variableDeclarationStatement)
+			{
+				foreach (var vi in variableDeclarationStatement.Variables) {
+					currentDeclaringVariabes.Push(vi);
+				}
+				
+				base.VisitVariableDeclarationStatement(variableDeclarationStatement);
+				
+				foreach (var vi in variableDeclarationStatement.Variables.Reverse()) {
+					var popped = currentDeclaringVariabes.Pop();
+					Debug.Assert(popped == vi);
+				}
 			}
 
 			public override void VisitThisReferenceExpression(ThisReferenceExpression thisReferenceExpression)
@@ -97,6 +151,9 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				if (memberReference == null) {
 					return;
 				}
+				
+				if (currentDeclaringVariabes.Any(vi => vi.Name == memberReference.MemberName))
+					return;
 
 				var state = ctx.GetResolverStateAfter(thisReferenceExpression);
 				var wholeResult = ctx.Resolve(memberReference);
@@ -105,12 +162,20 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				if (member == null) { 
 					return;
 				}
+				
+				var localDeclarationSpace = thisReferenceExpression.GetLocalVariableDeclarationSpace();
+				if (ContainsConflictingDeclarationNamed(member.Name, localDeclarationSpace))
+					return;
 
 				var result = state.LookupSimpleNameOrTypeName(memberReference.MemberName, EmptyList<IType>.Instance, NameLookupMode.Expression);
-			
+				var parentResult = ctx.Resolve(memberReference.Parent) as CSharpInvocationResolveResult;
+				
 				bool isRedundant;
 				if (result is MemberResolveResult) {
 					isRedundant = ((MemberResolveResult)result).Member.Region.Equals(member.Region);
+				} else if (parentResult != null && parentResult.IsExtensionMethodInvocation) {
+					// 'this.' is required for extension method invocation
+					isRedundant = false;
 				} else if (result is MethodGroupResolveResult) {
 					isRedundant = ((MethodGroupResolveResult)result).Methods.Any(m => m.Region.Equals(member.Region));
 				} else {
@@ -118,12 +183,76 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				}
 
 				if (isRedundant) {
-					AddIssue(thisReferenceExpression.StartLocation, memberReference.MemberNameToken.StartLocation, ctx.TranslateString("Remove redundant 'this.'"), script => {
-						script.Replace(memberReference, RefactoringAstHelper.RemoveTarget(memberReference));
-					}
+					AddIssue(
+						thisReferenceExpression.StartLocation, 
+						memberReference.MemberNameToken.StartLocation, 
+						ctx.TranslateString("Qualifier 'this.' is redundant"), 
+						new CodeAction(
+							ctx.TranslateString("Remove redundant 'this.'"),
+							script => {
+								script.Replace(memberReference, RefactoringAstHelper.RemoveTarget(memberReference));
+							},
+							thisReferenceExpression.StartLocation,
+							memberReference.MemberNameToken.StartLocation
+						) 
 					);
+				}
+			}
+			
+			static bool ContainsConflictingDeclarationNamed(string name, AstNode rootNode)
+			{
+				var declarationFinder = new DeclarationFinder(name);
+				rootNode.AcceptVisitor(declarationFinder);
+				return declarationFinder.Declarations.Any();
+			}
+			
+			class DeclarationFinder : DepthFirstAstVisitor
+			{
+				string name;
+				
+				public DeclarationFinder (string name)
+				{
+					this.name = name;
+					Declarations = new List<AstNode>();
+				}
+				
+				public IList<AstNode> Declarations {
+					get;
+					private set;
+				}
+				
+				public override void VisitVariableInitializer(VariableInitializer variableInitializer)
+				{
+					if (variableInitializer.Name == name) {
+						Declarations.Add(variableInitializer.NameToken);
+					}
+					base.VisitVariableInitializer(variableInitializer);
+				}
+				
+				public override void VisitParameterDeclaration(ParameterDeclaration parameterDeclaration)
+				{
+					if (parameterDeclaration.Name == name) {
+						Declarations.Add(parameterDeclaration);
+					}
+					
+					base.VisitParameterDeclaration(parameterDeclaration);
+				}
+				
+				public override void VisitForStatement(ForStatement forStatement)
+				{
+					base.VisitForStatement(forStatement);
+				}
+				
+				public override void VisitForeachStatement(ForeachStatement foreachStatement)
+				{
+					if (foreachStatement.VariableName == name) {
+						Declarations.Add(foreachStatement.VariableNameToken);
+					}
+				
+					base.VisitForeachStatement(foreachStatement);
 				}
 			}
 		}
 	}
+	
 }

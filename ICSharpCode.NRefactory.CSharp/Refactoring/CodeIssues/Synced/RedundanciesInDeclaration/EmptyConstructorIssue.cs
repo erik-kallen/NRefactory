@@ -23,7 +23,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
 using System.Collections.Generic;
 using System.Linq;
 using ICSharpCode.NRefactory.Refactoring;
@@ -32,18 +31,18 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
 	[IssueDescription("Empty constructor",
 	                   Description = "An empty public constructor without paramaters is redundant.",
-                       Category = IssueCategories.Redundancies,
-                       Severity = Severity.Warning,
-                       ResharperDisableKeyword = "EmptyConstructor",
-                       IssueMarker = IssueMarker.GrayOut)]
-    public class EmptyConstructorIssue : ICodeIssueProvider
+	                   Category = IssueCategories.RedundanciesInDeclarations,
+	                   Severity = Severity.Warning,
+	                   ResharperDisableKeyword = "EmptyConstructor",
+	                   IssueMarker = IssueMarker.GrayOut)]
+	public class EmptyConstructorIssue : GatherVisitorCodeIssueProvider
 	{
-		public IEnumerable<CodeIssue> GetIssues(BaseRefactoringContext context)
+		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
 		{
 			var unit = context.RootNode as SyntaxTree;
 			if (unit == null)
-				return Enumerable.Empty<CodeIssue>();
-			return new GatherVisitor(context).GetIssues();
+				return null;
+			return new GatherVisitor(context);
 		}
 
 		class GatherVisitor : GatherVisitorBase<EmptyConstructorIssue>
@@ -65,15 +64,23 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					if (child.Body.Any() || child.Parameters.Count > 0) {
 						hasUnemptyConstructor = true;
 					} else if (child.HasModifier(Modifiers.Public)) {
-                        if (child.Initializer.Arguments.Any ())
-                            continue;
+						if (child.Initializer.Arguments.Any())
+							continue;
 						hasEmptyConstructor = true;
 						emptyContructorNode = child;
 					}
 				}
 
 				if (!hasUnemptyConstructor && hasEmptyConstructor) {
-					AddIssue(emptyContructorNode, ctx.TranslateString("Remove constructor"), script => script.Remove(emptyContructorNode));   
+					AddIssue(
+						emptyContructorNode.NameToken,
+						ctx.TranslateString("Empty constructor is redundant."), 
+						new CodeAction(
+							ctx.TranslateString("Remove redundant constructor"),
+							script => script.Remove(emptyContructorNode),
+							emptyContructorNode.NameToken
+						)
+					);
 				}
 			}
 		}

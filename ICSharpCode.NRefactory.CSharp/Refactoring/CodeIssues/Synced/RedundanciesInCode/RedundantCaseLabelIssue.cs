@@ -31,15 +31,15 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
 	[IssueDescription ("Redundant 'case' label",
 						Description = "'case' label is redundant.",
-						Category = IssueCategories.Redundancies,
+						Category = IssueCategories.RedundanciesInCode,
 						Severity = Severity.Warning,
 						IssueMarker = IssueMarker.GrayOut,
                         ResharperDisableKeyword = "RedundantCaseLabel")]
-	public class RedundantCaseLabelIssue : ICodeIssueProvider
+	public class RedundantCaseLabelIssue : GatherVisitorCodeIssueProvider
 	{
-		public IEnumerable<CodeIssue> GetIssues (BaseRefactoringContext context)
+		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
 		{
-			return new GatherVisitor (context).GetIssues ();
+			return new GatherVisitor(context);
 		}
 
 		class GatherVisitor : GatherVisitorBase<RedundantCaseLabelIssue>
@@ -60,7 +60,8 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				if (!lastLabel.Expression.IsNull)
 					return;
 				AddIssue (switchSection.FirstChild.StartLocation, lastLabel.StartLocation,
-					ctx.TranslateString ("Remove redundant 'case' label"), scipt => {
+				          ctx.TranslateString ("Redundant case label"),
+				          ctx.TranslateString ("Remove redundant 'case' label"), scipt => {
 						foreach (var label in switchSection.CaseLabels) {
 							if (label != lastLabel)
 								scipt.Remove (label);

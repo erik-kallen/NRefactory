@@ -35,11 +35,10 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 //                      Description = "One method has the same body as other method",
 //                      Severity = Severity.Hint,
 //                      IssueMarker = IssueMarker.Underline)]
-	public class DuplicateBodyMethodIssue : ICodeIssueProvider
+	public class DuplicateBodyMethodIssue : CodeIssueProvider
 	{
 		#region ICodeIssueProvider implementation
-
-		public IEnumerable<CodeIssue> GetIssues(BaseRefactoringContext context)
+		public override IEnumerable<CodeIssue> GetIssues(BaseRefactoringContext context, string subIssue)
 		{
 			var visitor = new GatherVisitor(context);
 			visitor.GetMethods();
@@ -96,8 +95,9 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 							var secondMethod = list [j];
 							if (firstMethod.Body.IsMatch(secondMethod.Body)) {
 								AddIssue(secondMethod.NameToken,
-								                                 string.Format("Method '{0}' has the same with '{1}' ", secondMethod.Name,
-								                                               firstMethod.Name),
+								         string.Format("Method '{0}' has the same with '{1}' ", secondMethod.Name,
+								              firstMethod.Name), string.Format("Method '{0}' has the same with '{1}' ", secondMethod.Name,
+								                                 firstMethod.Name),
 								                                 script => {
 									InvokeMethod(script, firstMethod, secondMethod); }
 								);

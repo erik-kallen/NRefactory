@@ -37,14 +37,14 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 	/// </summary>
 	[IssueDescription("Remove redundant 'internal' modifier",
 	       Description="Removes 'internal' modifiers that are not required.", 
-	       Category = IssueCategories.Redundancies,
+	       Category = IssueCategories.RedundanciesInCode,
 	       Severity = Severity.Hint,
 	       IssueMarker = IssueMarker.GrayOut)]
-	public class RedundantInternalIssue : ICodeIssueProvider
+	public class RedundantInternalIssue : GatherVisitorCodeIssueProvider
 	{
-		public IEnumerable<CodeIssue> GetIssues(BaseRefactoringContext context)
+		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
 		{
-			return new GatherVisitor(context, this).GetIssues();
+			return new GatherVisitor(context, this);
 		}
 
 		class GatherVisitor : GatherVisitorBase<RedundantInternalIssue>
@@ -58,7 +58,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				foreach (var token_ in typeDeclaration.ModifierTokens) {
 					var token = token_;
 					if (token.Modifier == Modifiers.Internal) {
-						AddIssue(token, ctx.TranslateString("Remove 'internal' modifier"), script => {
+						AddIssue(token, ctx.TranslateString("Keyword 'internal' is redundant.  This is the default modifier."), ctx.TranslateString("Remove 'internal' modifier"), script => {
 							int offset = script.GetCurrentOffset(token.StartLocation);
 							int endOffset = script.GetCurrentOffset(token.GetNextNode().StartLocation);
 							script.RemoveText(offset, endOffset - offset);

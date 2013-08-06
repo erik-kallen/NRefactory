@@ -31,17 +31,17 @@ using ICSharpCode.NRefactory.Refactoring;
 
 namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
-	[IssueDescription ("Bitwise Operations on enum without [Flags] attribute",
-					   Description = "Bitwise Operations on enum not marked with [Flags] attribute",
+	[IssueDescription ("Bitwise operation on enum which has no [Flags] attribute",
+	                   Description = "Bitwise operation on enum which has no [Flags] attribute",
 					   Category = IssueCategories.CodeQualityIssues,
 					   Severity = Severity.Warning,
-					   IssueMarker = IssueMarker.Underline,
-                       ResharperDisableKeyword = "BitwiseOperatorOnEnumWihtoutFlags")]
-	public class BitwiseOperationOnNonFlagsEnumIssue : ICodeIssueProvider
+					   IssueMarker = IssueMarker.WavedLine,
+                       ResharperDisableKeyword = "BitwiseOperatorOnEnumWithoutFlags")]
+	public class BitwiseOperationOnNonFlagsEnumIssue : GatherVisitorCodeIssueProvider
 	{
-		public IEnumerable<CodeIssue> GetIssues (BaseRefactoringContext context)
+		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
 		{
-			return new GatherVisitor (context).GetIssues ();
+			return new GatherVisitor(context);
 		}
 
 		class GatherVisitor : GatherVisitorBase<BitwiseOperationOnNonFlagsEnumIssue>

@@ -37,14 +37,14 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 	/// </summary>
 	[IssueDescription("Remove redundant 'private' modifier",
 	       Description = "Removes 'private' modifiers that are not required.",
-	       Category = IssueCategories.Redundancies,
+	       Category = IssueCategories.RedundanciesInCode,
 	       Severity = Severity.Hint,
 	       IssueMarker = IssueMarker.GrayOut)]
-	public class RedundantPrivateIssue : ICodeIssueProvider
+	public class RedundantPrivateIssue : GatherVisitorCodeIssueProvider
 	{
-		public IEnumerable<CodeIssue> GetIssues(BaseRefactoringContext context)
+		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
 		{
-			return new GatherVisitor(context, this).GetIssues();
+			return new GatherVisitor(context, this);
 		}
 
 		class GatherVisitor : GatherVisitorBase<RedundantPrivateIssue>
@@ -58,7 +58,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				foreach (var token_ in node.ModifierTokens) {
 					var token = token_;
 					if (token.Modifier == Modifiers.Private) {
-						AddIssue(token, ctx.TranslateString("Remove redundant 'private' modifier"), script => {
+						AddIssue(token, ctx.TranslateString("Keyword 'private' is redundant. This is the default modifier."), ctx.TranslateString("Remove redundant 'private' modifier"), script => {
 							script.ChangeModifier (node, node.Modifiers & ~Modifiers.Private);
 						});
 					}

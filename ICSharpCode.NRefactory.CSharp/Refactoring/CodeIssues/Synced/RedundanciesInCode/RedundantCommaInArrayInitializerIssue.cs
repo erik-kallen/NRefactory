@@ -23,7 +23,6 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
 using System.Collections.Generic;
 using ICSharpCode.NRefactory.Refactoring;
 
@@ -31,47 +30,48 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
 	[IssueDescription ("Redundant comma in array initializer",
 						Description = "Redundant comma in array initializer.",
-						Category = IssueCategories.Redundancies,
+						Category = IssueCategories.RedundanciesInCode,
 						Severity = Severity.Warning,
 						IssueMarker = IssueMarker.GrayOut,
                         ResharperDisableKeyword = "RedundantCommaInArrayInitializer")]
-	public class RedundantCommaInArrayInitializerIssue : ICodeIssueProvider
+	public class RedundantCommaInArrayInitializerIssue : GatherVisitorCodeIssueProvider
 	{
-		public IEnumerable<CodeIssue> GetIssues (BaseRefactoringContext context)
+		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
 		{
-			return new GatherVisitor (context).GetIssues ();
+			return new GatherVisitor(context);
 		}
 
 		class GatherVisitor : GatherVisitorBase<RedundantCommaInArrayInitializerIssue>
 		{
-			public GatherVisitor (BaseRefactoringContext ctx)
+			public GatherVisitor(BaseRefactoringContext ctx)
 				: base (ctx)
 			{
 			}
 
-			public override void VisitArrayInitializerExpression (ArrayInitializerExpression arrayInitializerExpression)
+			public override void VisitArrayInitializerExpression(ArrayInitializerExpression arrayInitializerExpression)
 			{
-				base.VisitArrayInitializerExpression (arrayInitializerExpression);
+				base.VisitArrayInitializerExpression(arrayInitializerExpression);
 
 				if (arrayInitializerExpression.IsSingleElement)
 					return;
 
 				var commaToken = arrayInitializerExpression.RBraceToken.PrevSibling as CSharpTokenNode;
-				if (commaToken == null || commaToken.ToString () != ",")
+				if (commaToken == null || commaToken.ToString() != ",")
 					return;
-				string initializerType;
+				string issueDescription;
 				if (arrayInitializerExpression.Parent is ObjectCreateExpression) {
-					if (arrayInitializerExpression.Elements.FirstOrNullObject () is NamedExpression) {
-                        initializerType = ctx.TranslateString("Remove redundant comma in object initializer");
+					if (arrayInitializerExpression.Elements.FirstOrNullObject() is NamedExpression) {
+						issueDescription = ctx.TranslateString("Redundant comma in object initializer");
 					} else {
-                        initializerType = ctx.TranslateString("Remove redundant comma in collection initializer");
+						issueDescription = ctx.TranslateString("Redundant comma in collection initializer");
 					}
 				} else {
-                    initializerType = ctx.TranslateString("Remove redundant comma in array initializer");
+					issueDescription = ctx.TranslateString("Redundant comma in array initializer");
 				}
-				AddIssue (commaToken,
-                    initializerType,
-					script => script.Remove (commaToken));
+				AddIssue(commaToken,
+				         issueDescription,
+				         ctx.TranslateString("Remove ','"),
+				         script => script.Remove(commaToken));
 			}
 		}
 	}

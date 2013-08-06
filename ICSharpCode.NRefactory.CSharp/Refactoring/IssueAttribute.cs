@@ -43,7 +43,7 @@ namespace ICSharpCode.NRefactory.CSharp
 		public string ResharperDisableKeyword { get; set; }
 		public string SuppressMessageCategory { get; set; }
 		public string SuppressMessageCheckId { get; set; }
-        public int PragmaWarning { get; set; }
+		public int PragmaWarning { get; set; }
 
 		public Severity Severity { get; set; }
 
@@ -53,7 +53,33 @@ namespace ICSharpCode.NRefactory.CSharp
 		{
 			Title = title;
 			Severity = Severity.Suggestion;
-			IssueMarker = IssueMarker.Underline;
+			IssueMarker = IssueMarker.WavedLine;
+		}
+	}
+
+
+	[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+	public class SubIssueAttribute : System.Attribute
+	{
+		public string Title { get; private set;}
+		public string Description { get; set; }
+
+		Severity severity;
+		public bool HasOwnSeverity { get; set; }
+
+		public Severity Severity {
+			get {
+				return severity;
+			}
+			set {
+				severity = value;
+				HasOwnSeverity = true;
+			}
+		}
+
+		public SubIssueAttribute (string title)
+		{
+			Title = title;
 		}
 	}
 }

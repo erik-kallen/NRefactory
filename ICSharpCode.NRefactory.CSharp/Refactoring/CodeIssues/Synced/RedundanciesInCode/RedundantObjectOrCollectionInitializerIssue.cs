@@ -31,15 +31,15 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
 	[IssueDescription ("Redundant empty object or collection initializer",
 					   Description = "Redundant empty object or collection initializer.",
-					   Category = IssueCategories.Redundancies,
+					   Category = IssueCategories.RedundanciesInCode,
 					   Severity = Severity.Warning,
 					   IssueMarker = IssueMarker.GrayOut,
                        ResharperDisableKeyword = "RedundantEmptyObjectOrCollectionInitializer")]
-	public class RedundantObjectOrCollectionInitializerIssue : ICodeIssueProvider
+	public class RedundantObjectOrCollectionInitializerIssue : GatherVisitorCodeIssueProvider
 	{
-		public IEnumerable<CodeIssue> GetIssues (BaseRefactoringContext context)
+		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
 		{
-			return new GatherVisitor (context).GetIssues ();
+			return new GatherVisitor(context);
 		}
 
 		class GatherVisitor : GatherVisitorBase<RedundantObjectOrCollectionInitializerIssue>
@@ -55,7 +55,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				if (objectCreateExpression.Initializer.IsNull || objectCreateExpression.Initializer.Elements.Count > 0)
 					return;
 
-				AddIssue (objectCreateExpression.Initializer, ctx.TranslateString ("Remove initializer"),
+				AddIssue (objectCreateExpression.Initializer, ctx.TranslateString ("Empty object or collection initializer is redundant"),  ctx.TranslateString ("Remove initializer"),
 					script => {
 						var expr = (ObjectCreateExpression)objectCreateExpression.Clone ();
 						expr.Initializer = ArrayInitializerExpression.Null;

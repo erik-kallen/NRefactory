@@ -39,7 +39,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
                       Category = IssueCategories.PracticesAndImprovements,
 	                  Severity = Severity.Suggestion,
                       ResharperDisableKeyword = "ReplaceWithSingleCallToAny")]
-    public class ReplaceWithSingleCallToAnyIssue : ICodeIssueProvider
+    public class ReplaceWithSingleCallToAnyIssue : GatherVisitorCodeIssueProvider
 	{
 		static readonly AstNode pattern =
 			new InvocationExpression (
@@ -50,14 +50,14 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					               	new AnyNode ())),
 					Pattern.AnyString));
 		
-		public IEnumerable<CodeIssue> GetIssues(BaseRefactoringContext context)
+		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
 		{
-			return new GatherVisitor<ReplaceWithSingleCallToAnyIssue>(context, "Any").GetIssues();
+			return new GatherVisitor<ReplaceWithSingleCallToAnyIssue>(context, "Any");
 		}
 		
-		internal class GatherVisitor<T> : GatherVisitorBase<T> where T : ICodeIssueProvider
+		internal class GatherVisitor<T> : GatherVisitorBase<T> where T : GatherVisitorCodeIssueProvider
 		{
-		    readonly string member;
+			readonly string member;
 
 			public GatherVisitor (BaseRefactoringContext ctx, string member) : base (ctx)
 			{
@@ -86,12 +86,17 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					return;
 				
 				AddIssue (
-					anyInvoke, string.Format("Redundant Where() call with predicate followed by {0}()", anyResolve.Member.Name),
-				    script => {
-						var arg = whereInvoke.Arguments.Single ().Clone ();
-						var target = match.Get<Expression> ("target").Single ().Clone ();
-						script.Replace (anyInvoke, new InvocationExpression (new MemberReferenceExpression (target, anyResolve.Member.Name), arg));
-					});
+					anyInvoke, string.Format(ctx.TranslateString("Redundant Where() call with predicate followed by {0}()"), anyResolve.Member.Name),
+					new CodeAction (
+						string.Format(ctx.TranslateString("Replace with single call to '{0}'"), anyResolve.Member.Name),
+						script => {
+							var arg = whereInvoke.Arguments.Single ().Clone ();
+							var target = match.Get<Expression> ("target").Single ().Clone ();
+							script.Replace (anyInvoke, new InvocationExpression (new MemberReferenceExpression (target, anyResolve.Member.Name), arg));
+						},
+						anyInvoke
+					)
+				);
 			}
 			
 			bool IsQueryExtensionClass(ITypeDefinition typeDef)

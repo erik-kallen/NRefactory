@@ -39,8 +39,8 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 	                  Description="'?:' expression can be converted to '??' expression.",
 	                  Category = IssueCategories.Opportunities,
 	                  Severity = Severity.Suggestion,
-                      ResharperDisableKeyword = "ConvertConditionalTernaryToNullCoalescing")]
-    public class ConvertConditionalTernaryToNullCoalescingIssue : ICodeIssueProvider
+	                  ResharperDisableKeyword = "ConvertConditionalTernaryToNullCoalescing")]
+	public class ConvertConditionalTernaryToNullCoalescingIssue : GatherVisitorCodeIssueProvider
 	{
 		static readonly Pattern pattern = new Choice {
 			// a != null ? a : other
@@ -57,9 +57,9 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			),
 		};
 		
-		public IEnumerable<CodeIssue> GetIssues(BaseRefactoringContext context)
+		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
 		{
-			return new GatherVisitor(context, this).GetIssues();
+			return new GatherVisitor(context, this);
 		}
 		
 		class GatherVisitor : GatherVisitorBase<ConvertConditionalTernaryToNullCoalescingIssue>
@@ -77,10 +77,11 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				if (m.Success) {
 					var a = m.Get<Expression>("a").Single();
 					var other = m.Get<Expression>("other").Single();
-					AddIssue(conditionalExpression, ctx.TranslateString("Convert to '??' expression"), script => {
-						var expr = new BinaryOperatorExpression (a.Clone (), BinaryOperatorType.NullCoalescing, other.Clone ());
-						script.Replace (conditionalExpression, expr);
-					});
+					AddIssue(conditionalExpression, ctx.TranslateString("'?:' expression can be re-written as '??' expression"), new CodeAction (
+						ctx.TranslateString("Replace '?:'  operator with '??"), script => {
+							var expr = new BinaryOperatorExpression (a.Clone (), BinaryOperatorType.NullCoalescing, other.Clone ());
+							script.Replace (conditionalExpression, expr);
+						}, conditionalExpression));
 				}
 				base.VisitConditionalExpression (conditionalExpression);
 			}

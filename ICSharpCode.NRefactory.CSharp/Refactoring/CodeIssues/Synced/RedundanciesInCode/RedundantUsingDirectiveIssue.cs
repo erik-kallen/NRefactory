@@ -40,12 +40,12 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 	/// </summary>
 	[IssueDescription("Redundant using directive",
 	                  Description = "Using directive is not required and can safely be removed.",
-	                  Category = IssueCategories.Redundancies,
+	                  Category = IssueCategories.RedundanciesInCode,
 	                  Severity = Severity.Hint,
 	                  IssueMarker = IssueMarker.GrayOut,
 	                  ResharperDisableKeyword = "RedundantUsingDirective"
 	)]
-	public class RedundantUsingDirectiveIssue : ICodeIssueProvider
+	public class RedundantUsingDirectiveIssue : CodeIssueProvider
 	{
 		List<string> namespacesToKeep = new List<string>();
 		
@@ -56,10 +56,11 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		public IList<string> NamespacesToKeep {
 			get { return namespacesToKeep; }
 		}
-		
-		public IEnumerable<CodeIssue> GetIssues(BaseRefactoringContext context)
+
+
+		public override IEnumerable<CodeIssue> GetIssues(BaseRefactoringContext context, string subIssue)
 		{
-			var visitor = new GatherVisitor (context, this);
+			var visitor = new GatherVisitor(context, this);
 			context.RootNode.AcceptVisitor (visitor);
 			visitor.Collect ();
 			return visitor.FoundIssues;
@@ -78,7 +79,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			{
 				foreach (var u in isInUse.Where (u => !u.Value)) {
 					var decl = u.Key;
-					AddIssue(decl, ctx.TranslateString("Remove redundant using directives"), script => {
+					AddIssue(decl, ctx.TranslateString("Using directive is not used by code and can be removed safely."), ctx.TranslateString("Remove redundant using directives"), script => {
 						foreach (var u2 in isInUse.Where (a => !a.Value)) {
 							script.Remove (u2.Key);
 						}

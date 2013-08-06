@@ -36,15 +36,15 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
 	[IssueDescription ("Redundant cast",
 						Description = "Type cast can be safely removed.",
-						Category = IssueCategories.Redundancies,
+						Category = IssueCategories.RedundanciesInCode,
 						Severity = Severity.Warning,
 						IssueMarker = IssueMarker.GrayOut,
                         ResharperDisableKeyword = "RedundantCast")]
-	public class RedundantCastIssue : ICodeIssueProvider
+	public class RedundantCastIssue : GatherVisitorCodeIssueProvider
 	{
-		public IEnumerable<CodeIssue> GetIssues (BaseRefactoringContext context)
+		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
 		{
-			return new GatherVisitor (context).GetIssues ();
+			return new GatherVisitor(context);
 		}
 
 		class GatherVisitor : GatherVisitorBase<RedundantCastIssue>
@@ -116,22 +116,28 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				return false;
 			}
 
-			void AddIssue (Expression typeCastNode, Expression expr, TextLocation start, TextLocation end)
+			void AddIssue (Expression outerTypeCastNode, Expression typeCastNode, Expression expr, TextLocation start, TextLocation end)
 			{
-				AddIssue (start, end, ctx.TranslateString ("Remove redundant type cast"),
-					script => script.Replace (typeCastNode, expr.Clone ()));
+				AstNode type;
+				if (typeCastNode is CastExpression)
+					type = ((CastExpression)typeCastNode).Type;
+				else 
+					type = ((AsExpression)typeCastNode).Type;
+				AddIssue (start, end, ctx.TranslateString ("Type cast is redundant"), string.Format(ctx.TranslateString ("Remove cast to '{0}'"), type),
+				          script => script.Replace (outerTypeCastNode, expr.Clone ()));
 			}
 
 			void CheckTypeCast (Expression typeCastNode, Expression expr, TextLocation castStart, TextLocation castEnd)
 			{
-				while (typeCastNode.Parent != null && typeCastNode.Parent is ParenthesizedExpression)
-					typeCastNode = (Expression)typeCastNode.Parent;
-				var expectedType = GetExpectedType (typeCastNode);
+				var outerTypeCastNode = typeCastNode;
+				while (outerTypeCastNode.Parent != null && outerTypeCastNode.Parent is ParenthesizedExpression)
+					outerTypeCastNode = (Expression)outerTypeCastNode.Parent;
+				var expectedType = GetExpectedType (outerTypeCastNode);
 				var exprType = ctx.Resolve (expr).Type;
-				if (expectedType.Kind == TypeKind.Interface && IsExplicitImplementation (exprType, expectedType, typeCastNode))
+				if (expectedType.Kind == TypeKind.Interface && IsExplicitImplementation (exprType, expectedType, outerTypeCastNode))
 					return;
 				if (exprType.GetAllBaseTypes ().Any (t => t.Equals(expectedType)))
-					AddIssue (typeCastNode, expr, castStart, castEnd);
+					AddIssue (outerTypeCastNode, typeCastNode, expr, castStart, castEnd);
 			}
 		}
 	}
