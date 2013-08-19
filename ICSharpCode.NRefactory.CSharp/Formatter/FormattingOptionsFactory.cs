@@ -71,9 +71,9 @@ namespace ICSharpCode.NRefactory.CSharp
 				PropertyBraceStyle = BraceStyle.EndOfLine,
 				PropertyGetBraceStyle = BraceStyle.EndOfLine,
 				PropertySetBraceStyle = BraceStyle.EndOfLine,
-				AllowPropertyGetBlockInline = true,
-				AllowPropertySetBlockInline = true,
-	
+				SimpleGetBlockFormatting = PropertyFormatting.AllowOneLine,
+				SimpleSetBlockFormatting = PropertyFormatting.AllowOneLine,
+
 				EventBraceStyle = BraceStyle.EndOfLine,
 				EventAddBraceStyle = BraceStyle.EndOfLine,
 				EventRemoveBraceStyle = BraceStyle.EndOfLine,
@@ -151,7 +151,8 @@ namespace ICSharpCode.NRefactory.CSharp
 				
 				AlignEmbeddedIfStatements = true,
 				AlignEmbeddedUsingStatements = true,
-				PropertyFormatting = PropertyFormatting.AllowOneLine,
+				SimplePropertyFormatting = PropertyFormatting.AllowOneLine,
+				AutoPropertyFormatting = PropertyFormatting.AllowOneLine,
 				SpaceBeforeMethodDeclarationParameterComma = false,
 				SpaceAfterMethodDeclarationParameterComma = true,
 				SpaceAfterDelegateDeclarationParameterComma = true,
@@ -235,8 +236,8 @@ namespace ICSharpCode.NRefactory.CSharp
 				PropertyBraceStyle = BraceStyle.EndOfLine,
 				PropertyGetBraceStyle = BraceStyle.EndOfLine,
 				PropertySetBraceStyle = BraceStyle.EndOfLine,
-				AllowPropertyGetBlockInline = true,
-				AllowPropertySetBlockInline = true,
+				SimpleGetBlockFormatting = PropertyFormatting.AllowOneLine,
+				SimpleSetBlockFormatting = PropertyFormatting.AllowOneLine,
 	
 				EventBraceStyle = BraceStyle.EndOfLine,
 				EventAddBraceStyle = BraceStyle.EndOfLine,
@@ -316,7 +317,8 @@ namespace ICSharpCode.NRefactory.CSharp
 				
 				AlignEmbeddedIfStatements = true,
 				AlignEmbeddedUsingStatements = true,
-				PropertyFormatting = PropertyFormatting.AllowOneLine,
+				SimplePropertyFormatting = PropertyFormatting.AllowOneLine,
+				AutoPropertyFormatting = PropertyFormatting.AllowOneLine,
 				SpaceBeforeMethodDeclarationParameterComma = false,
 				SpaceAfterMethodDeclarationParameterComma = true,
 				SpaceAfterDelegateDeclarationParameterComma = true,

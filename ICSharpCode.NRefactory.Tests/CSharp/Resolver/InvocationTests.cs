@@ -800,6 +800,23 @@ public class B<T> {
 		}
 
 		[Test]
+		public void GenericInvocationWithTypeArgumentAsICollection() {
+			string program = @"
+using System;
+using System.Collections.Generic;
+
+static class C1 {
+	public static void G<TC, TI>(TC items) where TC : ICollection<TI> {}
+
+	public static void M<TI>(TI[] items) {
+		$G<TI[], TI>(items)$;
+	}
+}";
+			var rr = Resolve<CSharpInvocationResolveResult>(program);
+			Assert.IsFalse(rr.IsError);
+		}
+
+		[Test]
 		public void ConditionallyRemovedInvocations()
 		{
 			string program = @"

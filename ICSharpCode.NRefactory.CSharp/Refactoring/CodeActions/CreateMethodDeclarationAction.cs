@@ -193,11 +193,12 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		static CodeAction CreateAction(RefactoringContext context, AstNode createFromNode, string methodName, AstType returnType, IEnumerable<ParameterDeclaration> parameters, bool createInOtherType, bool isStatic, ResolveResult targetResolveResult)
 		{
 			return new CodeAction(context.TranslateString("Create method"), script => {
-				var decl = new MethodDeclaration() {
+				var throwStatement = new ThrowStatement();
+				var decl = new MethodDeclaration {
 					ReturnType = returnType,
 					Name = methodName,
-					Body = new BlockStatement() {
-						new ThrowStatement(new ObjectCreateExpression(context.CreateShortType("System", "NotImplementedException")))
+					Body = new BlockStatement {
+						throwStatement
 					}
 				};
 				decl.Parameters.AddRange(parameters);
@@ -213,12 +214,21 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 						decl.Modifiers |= Modifiers.Public;
 					}
 
-					script.InsertWithCursor(context.TranslateString("Create method"), targetResolveResult.Type.GetDefinition(), decl);
+					script
+						.InsertWithCursor(context.TranslateString("Create method"), targetResolveResult.Type.GetDefinition(), (s, c) => {
+							throwStatement.Expression = new ObjectCreateExpression(c.CreateShortType("System", "NotImplementedException"));
+							return decl;
+						})
+						.ContinueScript (s => s.Select(throwStatement));
 					return;
+				} else {
+					throwStatement.Expression = new ObjectCreateExpression(context.CreateShortType("System", "NotImplementedException"));
 				}
 
-				script.InsertWithCursor(context.TranslateString("Create method"), Script.InsertPosition.Before, decl);
-			}, createFromNode);
+				script
+					.InsertWithCursor(context.TranslateString("Create method"), Script.InsertPosition.Before, decl)
+					.ContinueScript (() => script.Select(throwStatement));
+			}, createFromNode.GetNodeAt(context.Location));
 		}
 
 		public static IEnumerable<ParameterDeclaration> GenerateParameters(RefactoringContext context, IEnumerable<Expression> arguments)
@@ -313,7 +323,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			return sb.ToString ();
 		}
 
-		static string GuessNameFromType(IType returnType)
+		internal static string GuessNameFromType(IType returnType)
 		{
 			switch (returnType.ReflectionName) {
 				case "System.Byte":

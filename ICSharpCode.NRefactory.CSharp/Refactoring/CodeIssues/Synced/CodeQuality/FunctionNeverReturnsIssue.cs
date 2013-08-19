@@ -1,4 +1,4 @@
-﻿// 
+// 
 // MethodNeverReturnsIssue.cs
 // 
 // Author:
@@ -77,9 +77,12 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 
 			public override void VisitAccessor(Accessor accessor)
 			{
+				if (accessor.Body.IsNull)
+					return;
 				var parentProperty = accessor.GetParent<PropertyDeclaration>();
 				var resolveResult = ctx.Resolve(parentProperty);
 				var memberResolveResult = resolveResult as MemberResolveResult;
+
 				VisitBody("Accessor", accessor.Keyword, accessor.Body,
 				          memberResolveResult == null ? null : memberResolveResult.Member,
 				          accessor.Keyword.Role);
@@ -101,12 +104,15 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 
 			void VisitBody(string entityType, AstNode node, BlockStatement body, IMember member, Role accessorRole)
 			{
-				var reachability = ctx.CreateReachabilityAnalysis(body, new RecursiveDetector(ctx, member, accessorRole));
+				var recursiveDetector = new RecursiveDetector(ctx, member, accessorRole);
+				var reachability = ctx.CreateReachabilityAnalysis(body, recursiveDetector);
 				bool hasReachableReturn = false;
 				foreach (var statement in reachability.ReachableStatements) {
 					if (statement is ReturnStatement || statement is ThrowStatement || statement is YieldBreakStatement) {
-						hasReachableReturn = true;
-						break;
+						if (!statement.AcceptVisitor(recursiveDetector)) {
+							hasReachableReturn = true;
+							break;
+						}
 					}
 				}
 				if (!hasReachableReturn && !reachability.IsEndpointReachable(body)) {
@@ -126,35 +132,30 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					this.accessorRole = accessorRole;
 				}
 
-				public override void VisitIdentifierExpression(IdentifierExpression identifierExpression)
+				public override bool VisitIdentifierExpression(IdentifierExpression identifierExpression)
 				{
-					CheckRecursion(identifierExpression);
+					return CheckRecursion(identifierExpression);
 				}
 
-				public override void VisitMemberReferenceExpression(MemberReferenceExpression memberReferenceExpression)
+				public override bool VisitMemberReferenceExpression(MemberReferenceExpression memberReferenceExpression)
 				{
-					base.VisitMemberReferenceExpression(memberReferenceExpression);
+					if (base.VisitMemberReferenceExpression(memberReferenceExpression))
+						return true;
 
-					if (!CurrentResult) {
-						PopResult();
-						CheckRecursion(memberReferenceExpression);
-					}
+					return CheckRecursion(memberReferenceExpression);
 				}
 
-				public override void VisitInvocationExpression(InvocationExpression invocationExpression)
+				public override bool VisitInvocationExpression(InvocationExpression invocationExpression)
 				{
-					base.VisitInvocationExpression(invocationExpression);
+					if (base.VisitInvocationExpression(invocationExpression))
+						return true;
 
-					if (!CurrentResult) {
-						PopResult();
-						CheckRecursion(invocationExpression);
-					}
+					return CheckRecursion(invocationExpression);
 				}
 
-				void CheckRecursion(AstNode node) {
+				bool CheckRecursion(AstNode node) {
 					if (member == null) {
-						PushResult(false);
-						return;
+						return false;
 					}
 
 					var resolveResult = ctx.Resolve(node);
@@ -164,27 +165,27 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					//and properties are never in "method groups".
 					var memberResolveResult = resolveResult as MemberResolveResult;
 					if (memberResolveResult == null || memberResolveResult.Member != this.member) {
-						PushResult(false);
-						return;
+						return false;
+					}
+
+					//Now check for virtuals
+					if (memberResolveResult.Member.IsVirtual && !memberResolveResult.Member.DeclaringTypeDefinition.IsSealed) {
+						return false;
 					}
 
 					var parentAssignment = node.Parent as AssignmentExpression;
 					if (parentAssignment != null) {
 						if (accessorRole == CustomEventDeclaration.AddKeywordRole) {
-							PushResult(parentAssignment.Operator == AssignmentOperatorType.Add);
-							return;
+							return parentAssignment.Operator == AssignmentOperatorType.Add;
 						}
 						if (accessorRole == CustomEventDeclaration.RemoveKeywordRole) {
-							PushResult(parentAssignment.Operator == AssignmentOperatorType.Subtract);
-							return;
+							return parentAssignment.Operator == AssignmentOperatorType.Subtract;
 						}
 						if (accessorRole == PropertyDeclaration.GetKeywordRole) {
-							PushResult(parentAssignment.Operator != AssignmentOperatorType.Assign);
-							return;
+							return parentAssignment.Operator != AssignmentOperatorType.Assign;
 						}
 
-						PushResult(true);
-						return;
+						return true;
 					}
 
 					var parentUnaryOperation = node.Parent as UnaryOperatorExpression;
@@ -195,12 +196,11 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 							operatorType == UnaryOperatorType.PostIncrement ||
 							operatorType == UnaryOperatorType.PostDecrement) {
 
-							PushResult(true);
-							return;
+							return true;
 						}
 					}
 
-					PushResult(accessorRole == null || accessorRole == PropertyDeclaration.GetKeywordRole);
+					return accessorRole == null || accessorRole == PropertyDeclaration.GetKeywordRole;
 				}
 			}
 		}

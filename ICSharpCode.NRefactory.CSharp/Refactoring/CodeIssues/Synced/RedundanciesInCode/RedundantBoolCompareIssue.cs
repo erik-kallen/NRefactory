@@ -50,15 +50,15 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			// note:this action should only check <bool> == true or <bool> != null - it needs excectly 
 			//      mimic the RedundantBoolCompare behavior otherwise it's no 1:1 mapping
 			static readonly Pattern pattern = new Choice {
-				PatternHelper.CommutativeOperator(
-					new NamedNode ("const", new Choice { new PrimitiveExpression(true)/*, new PrimitiveExpression(false) */}),
+				PatternHelper.CommutativeOperatorWithOptionalParentheses(
+					new NamedNode ("const", new Choice { new PrimitiveExpression(true), new PrimitiveExpression(false) }),
 					BinaryOperatorType.Equality, new AnyNode("expr")),
-				PatternHelper.CommutativeOperator(
-					new NamedNode ("const", new Choice { /*new PrimitiveExpression(true), */new PrimitiveExpression(false) }),
+				PatternHelper.CommutativeOperatorWithOptionalParentheses(
+					new NamedNode ("const", new Choice { new PrimitiveExpression(true), new PrimitiveExpression(false) }),
 					BinaryOperatorType.InEquality, new AnyNode("expr")),
 			};
 
-			static InsertParenthesesVisitor insertParenthesesVisitor = new InsertParenthesesVisitor ();
+			static readonly InsertParenthesesVisitor insertParenthesesVisitor = new InsertParenthesesVisitor ();
 
 			public GatherVisitor (BaseRefactoringContext ctx)
 				: base (ctx)
@@ -78,15 +78,20 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				if (exprType == null || exprType.KnownTypeCode != KnownTypeCode.Boolean)
 					return;
 
-				AddIssue (binaryOperatorExpression, ctx.TranslateString ("Comparison with true is redundant"), ctx.TranslateString ("Remove redundant comparison"), scrpit => {
-					var boolConstant = (bool)match.Get<PrimitiveExpression> ("const").First ().Value;
-					if ((binaryOperatorExpression.Operator == BinaryOperatorType.InEquality && boolConstant) ||
-						(binaryOperatorExpression.Operator == BinaryOperatorType.Equality && !boolConstant)) {
-						expr = new UnaryOperatorExpression (UnaryOperatorType.Not, expr.Clone());
-						expr.AcceptVisitor (insertParenthesesVisitor);
+				var boolConstant = (bool)match.Get<PrimitiveExpression> ("const").First ().Value;
+				AddIssue (
+					binaryOperatorExpression, 
+					boolConstant ? ctx.TranslateString ("Comparison with 'true' is redundant") : ctx.TranslateString ("Comparison with 'false' is redundant"),
+					ctx.TranslateString ("Remove redundant comparison"), 
+					script => {
+						if ((binaryOperatorExpression.Operator == BinaryOperatorType.InEquality && boolConstant) ||
+							(binaryOperatorExpression.Operator == BinaryOperatorType.Equality && !boolConstant)) {
+							expr = new UnaryOperatorExpression (UnaryOperatorType.Not, expr.Clone());
+							expr.AcceptVisitor (insertParenthesesVisitor);
+						}
+						script.Replace (binaryOperatorExpression, expr);
 					}
-					scrpit.Replace (binaryOperatorExpression, expr);
-				});
+				);
 			}
 		}
 	}

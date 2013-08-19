@@ -89,6 +89,21 @@ class TestClass
 		}
 
 		[Test]
+		public void TestIfWithoutElse ()
+		{
+			var input = @"
+class TestClass
+{
+	string TestMethod (int x)
+	{
+		if (x <= 0) return ""Hi"";
+		return ""_"" + TestMethod(x - 1);
+	}
+}";
+			TestWrongContext<FunctionNeverReturnsIssue> (input);
+		}
+
+		[Test]
 		public void TestRecursive ()
 		{
 			var input = @"
@@ -114,6 +129,20 @@ class TestClass
 	}
 	void TestMethod (int i)
 	{
+	}
+}";
+			Test<FunctionNeverReturnsIssue> (input, 0);
+		}
+
+		[Test]
+		public void TestVirtualNonRecursive ()
+		{
+			var input = @"
+class Base
+{
+	public Base parent;
+	public virtual string Result {
+		get { return parent.Result; }
 	}
 }";
 			Test<FunctionNeverReturnsIssue> (input, 0);
@@ -186,6 +215,21 @@ class TestClass
 	}
 }";
 			Test<FunctionNeverReturnsIssue> (input, 1);
+		}
+
+		[Test]
+		public void TestAutoProperty ()
+		{
+			var input = @"
+class TestClass
+{
+	int TestProperty
+	{
+		get;
+		set;
+	}
+}";
+			TestWrongContext<FunctionNeverReturnsIssue> (input);
 		}
 
 		[Test]
@@ -273,6 +317,123 @@ class TestClass
 	void TestMethod ()
 	{
 		while (true) ;
+	}
+}";
+			TestWrongContext<FunctionNeverReturnsIssue> (input);
+		}
+
+		[Test]
+		public void TestBug254 ()
+		{
+			//https://github.com/icsharpcode/NRefactory/issues/254
+			var input = @"
+class TestClass
+{
+	int state = 0;
+
+	bool Foo()
+	{
+		return state < 10;
+	}
+
+	void TestMethod()
+	{
+		if (Foo()) {
+			++state;
+			TestMethod ();	
+		}
+	}
+}";
+			TestWrongContext<FunctionNeverReturnsIssue> (input);
+		}
+
+		[Test]
+		public void TestSwitch ()
+		{
+			//https://github.com/icsharpcode/NRefactory/issues/254
+			var input = @"
+class TestClass
+{
+	int foo;
+	void TestMethod()
+	{
+		switch (foo) {
+			case 0: TestMethod();
+		}
+	}
+}";
+			TestWrongContext<FunctionNeverReturnsIssue> (input);
+		}
+
+		[Test]
+		public void TestSwitchWithDefault ()
+		{
+			//https://github.com/icsharpcode/NRefactory/issues/254
+			var input = @"
+class TestClass
+{
+	int foo;
+	void TestMethod()
+	{
+		switch (foo) {
+			case 0: case 1: TestMethod();
+			default: TestMethod();
+		}
+	}
+}";
+			Test<FunctionNeverReturnsIssue> (input, 1);
+		}
+
+		[Test]
+		public void TestSwitchValue ()
+		{
+			//https://github.com/icsharpcode/NRefactory/issues/254
+			var input = @"
+class TestClass
+{
+	int foo;
+	int TestMethod()
+	{
+		switch (TestMethod()) {
+			case 0: return 0;
+		}
+		return 1;
+	}
+}";
+			Test<FunctionNeverReturnsIssue> (input, 1);
+		}
+
+		[Test]
+		public void TestLinqFrom ()
+		{
+			//https://github.com/icsharpcode/NRefactory/issues/254
+			var input = @"
+using System.Linq;
+using System.Collections.Generic;
+class TestClass
+{
+	IEnumerable<int> TestMethod()
+	{
+		return from y in TestMethod() select y;
+	}
+}";
+			Test<FunctionNeverReturnsIssue> (input, 1);
+		}
+
+		[Test]
+		public void TestWrongLinqContexts ()
+		{
+			//https://github.com/icsharpcode/NRefactory/issues/254
+			var input = @"
+using System.Linq;
+using System.Collections.Generic;
+class TestClass
+{
+	IEnumerable<int> TestMethod()
+	{
+		return from y in Enumerable.Empty<int>()
+		       from z in TestMethod()
+		       select y;
 	}
 }";
 			TestWrongContext<FunctionNeverReturnsIssue> (input);

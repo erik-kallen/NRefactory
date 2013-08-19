@@ -46,11 +46,13 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			// str == null || str == ""
 			// str == null || str.Length == 0
 			new BinaryOperatorExpression (
-				PatternHelper.CommutativeOperator (new AnyNode ("str"), BinaryOperatorType.Equality, new NullReferenceExpression ()),
+				PatternHelper.CommutativeOperatorWithOptionalParentheses (new AnyNode ("str"), BinaryOperatorType.Equality, new NullReferenceExpression ()),
 				BinaryOperatorType.ConditionalOr,
 				new Choice {
-					PatternHelper.CommutativeOperator (new Backreference ("str"), BinaryOperatorType.Equality, new PrimitiveExpression ("")),
-					PatternHelper.CommutativeOperator (
+					PatternHelper.CommutativeOperatorWithOptionalParentheses (new Backreference ("str"), BinaryOperatorType.Equality, new PrimitiveExpression ("")),
+					PatternHelper.CommutativeOperatorWithOptionalParentheses (new Backreference ("str"), BinaryOperatorType.Equality,
+				                                       new MemberReferenceExpression(new TypeReferenceExpression(new PrimitiveType("string")), "Empty")),
+					PatternHelper.CommutativeOperatorWithOptionalParentheses (
 						new MemberReferenceExpression (new Backreference ("str"), "Length"),
 						BinaryOperatorType.Equality,
 						new PrimitiveExpression (0)
@@ -59,7 +61,11 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			),
 			// str == "" || str == null
 			new BinaryOperatorExpression (
-				PatternHelper.CommutativeOperator (new AnyNode ("str"), BinaryOperatorType.Equality, new PrimitiveExpression ("")),
+				new Choice {
+					PatternHelper.CommutativeOperatorWithOptionalParentheses (new AnyNode ("str"), BinaryOperatorType.Equality, new PrimitiveExpression ("")),
+					PatternHelper.CommutativeOperatorWithOptionalParentheses (new AnyNode ("str"), BinaryOperatorType.Equality,
+				                                       new MemberReferenceExpression(new TypeReferenceExpression(new PrimitiveType("string")), "Empty"))
+				},
 				BinaryOperatorType.ConditionalOr,
 				PatternHelper.CommutativeOperator(new Backreference ("str"), BinaryOperatorType.Equality, new NullReferenceExpression ())
 			)
@@ -69,11 +75,13 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			// str != null && str.Length != 0
 			// str != null && str.Length > 0
 			new BinaryOperatorExpression (
-				PatternHelper.CommutativeOperator(new AnyNode ("str"), BinaryOperatorType.InEquality, new NullReferenceExpression ()),
+				PatternHelper.CommutativeOperatorWithOptionalParentheses(new AnyNode ("str"), BinaryOperatorType.InEquality, new NullReferenceExpression ()),
 				BinaryOperatorType.ConditionalAnd,
 				new Choice {
-					PatternHelper.CommutativeOperator (new Backreference ("str"), BinaryOperatorType.InEquality, new PrimitiveExpression ("")),
-					PatternHelper.CommutativeOperator (
+					PatternHelper.CommutativeOperatorWithOptionalParentheses (new Backreference ("str"), BinaryOperatorType.InEquality, new PrimitiveExpression ("")),
+					PatternHelper.CommutativeOperatorWithOptionalParentheses (new Backreference ("str"), BinaryOperatorType.InEquality,
+				                                   	   new MemberReferenceExpression(new TypeReferenceExpression(new PrimitiveType("string")), "Empty")),
+					PatternHelper.CommutativeOperatorWithOptionalParentheses (
 						new MemberReferenceExpression (new Backreference ("str"), "Length"),
 						BinaryOperatorType.InEquality,
 						new PrimitiveExpression (0)
@@ -87,9 +95,13 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			),
 			// str != "" && str != null
 			new BinaryOperatorExpression (
-				PatternHelper.CommutativeOperator (new AnyNode ("str"), BinaryOperatorType.InEquality, new PrimitiveExpression ("")),
+				new Choice {
+					PatternHelper.CommutativeOperatorWithOptionalParentheses (new AnyNode ("str"), BinaryOperatorType.InEquality, new PrimitiveExpression ("")),
+					PatternHelper.CommutativeOperatorWithOptionalParentheses (new AnyNode ("str"), BinaryOperatorType.Equality,
+				                                   	   new MemberReferenceExpression(new TypeReferenceExpression(new PrimitiveType("string")), "Empty"))
+				},
 				BinaryOperatorType.ConditionalAnd,
-				PatternHelper.CommutativeOperator(new Backreference ("str"), BinaryOperatorType.InEquality, new NullReferenceExpression ())
+				PatternHelper.CommutativeOperatorWithOptionalParentheses(new Backreference ("str"), BinaryOperatorType.InEquality, new NullReferenceExpression ())
 			)
 		};
 

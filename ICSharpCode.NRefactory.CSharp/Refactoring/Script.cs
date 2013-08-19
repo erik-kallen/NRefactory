@@ -214,6 +214,45 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			Replace(offset, endOffset - offset, sb.ToString());
 		}
 
+		public void ChangeModifier(ParameterDeclaration param, ParameterModifier modifier)
+		{
+			var child = param.FirstChild;
+			Func<AstNode, bool> pred = s => s.Role == ParameterDeclaration.RefModifierRole || s.Role == ParameterDeclaration.OutModifierRole || s.Role == ParameterDeclaration.ParamsModifierRole || s.Role == ParameterDeclaration.ThisModifierRole;
+			if (!pred(child))
+				child = child.GetNextSibling(pred); 
+
+			int offset;
+			int endOffset;
+
+			if (child != null) {
+				offset = GetCurrentOffset(child.StartLocation);
+				endOffset = GetCurrentOffset(child.GetNextSibling (s => s.Role != Roles.NewLine && s.Role != Roles.Whitespace).StartLocation);
+			} else {
+				offset = endOffset = GetCurrentOffset(param.Type.StartLocation);
+			}
+			string modString;
+			switch (modifier) {
+				case ParameterModifier.None:
+					modString = "";
+					break;
+				case ParameterModifier.Ref:
+					modString = "ref ";
+					break;
+				case ParameterModifier.Out:
+					modString = "out ";
+					break;
+				case ParameterModifier.Params:
+					modString = "params ";
+					break;
+				case ParameterModifier.This:
+					modString = "this ";
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+			Replace(offset, endOffset - offset, modString);
+		}
+
 		/// <summary>
 		/// Changes the base types of a type declaration.
 		/// </summary>
@@ -264,7 +303,6 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			InsertBefore(node, attr);
 		}
 
-
 		public virtual Task Link (params AstNode[] nodes)
 		{
 			// Default implementation: do nothing
@@ -274,6 +312,11 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			var tcs = new TaskCompletionSource<object>();
 			tcs.SetResult(null);
 			return tcs.Task;
+		}
+
+		public virtual Task Link (IEnumerable<AstNode> nodes)
+		{
+			return Link(nodes.ToArray());
 		}
 		
 		public void Replace (AstNode node, AstNode replaceWith)
@@ -349,24 +392,26 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			End
 		}
 		
-		public virtual Task InsertWithCursor(string operation, InsertPosition defaultPosition, IEnumerable<AstNode> node)
+		public virtual Task<Script> InsertWithCursor(string operation, InsertPosition defaultPosition, IEnumerable<AstNode> node)
 		{
 			throw new NotImplementedException();
 		}
 		
-		public virtual Task InsertWithCursor(string operation, ITypeDefinition parentType, IEnumerable<AstNode> node)
+		public virtual Task<Script> InsertWithCursor(string operation, ITypeDefinition parentType, Func<Script, RefactoringContext, IEnumerable<AstNode>> nodeCallback)
 		{
 			throw new NotImplementedException();
 		}
 		
-		public Task InsertWithCursor(string operation, InsertPosition defaultPosition, params AstNode[] nodes)
+		public Task<Script> InsertWithCursor(string operation, InsertPosition defaultPosition, params AstNode[] nodes)
 		{
 			return InsertWithCursor(operation, defaultPosition, (IEnumerable<AstNode>)nodes);
 		}
-		
-		public Task InsertWithCursor(string operation, ITypeDefinition parentType, params AstNode[] nodes)
+
+		public Task<Script> InsertWithCursor(string operation, ITypeDefinition parentType, Func<Script, RefactoringContext, AstNode> nodeCallback)
 		{
-			return InsertWithCursor(operation, parentType, (IEnumerable<AstNode>)nodes);
+			return InsertWithCursor(operation, parentType, (Func<Script, RefactoringContext, IEnumerable<AstNode>>)delegate (Script s, RefactoringContext ctx) {
+				return new AstNode[] { nodeCallback(s, ctx) };
+			});
 		}
 		
 		protected virtual int GetIndentLevelAt (int offset)
@@ -502,6 +547,31 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		/// </param>
 		public virtual void CreateNewType(AstNode newType, NewTypeContext context = NewTypeContext.CurrentNamespace)
 		{
+		}
+	}
+
+	static class ExtMethods
+	{
+		public static void ContinueScript (this Task task, Action act)
+		{
+			if (task.IsCompleted) {
+				act();
+			} else {
+				task.ContinueWith(delegate {
+					act();
+				}, TaskScheduler.FromCurrentSynchronizationContext());
+			}
+		}
+
+		public static void ContinueScript (this Task<Script> task, Action<Script> act)
+		{
+			if (task.IsCompleted) {
+				act(task.Result);
+			} else {
+				task.ContinueWith(delegate {
+					act(task.Result);
+				}, TaskScheduler.FromCurrentSynchronizationContext());
+			}
 		}
 	}
 }

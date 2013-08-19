@@ -159,6 +159,9 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		/// <param name="statement">
 		/// The statement to start the analysis.
 		/// </param>
+		/// <param name="recursiveDetectorVisitor">
+		/// TODO.
+		/// </param>
 		/// <returns>
 		/// The reachability analysis object.
 		/// </returns>
@@ -185,6 +188,30 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			return referenceFinder.FindReferences(rootNode, variable);
 		}
 
+		#endregion
+
+
+		#region Naming
+		public virtual string GetNameProposal (string name, TextLocation loc, bool camelCase = true)
+		{
+			string baseName = (camelCase ? char.ToLower (name [0]) : char.ToUpper (name [0])) + name.Substring (1);
+
+			var type = RootNode.GetNodeAt<TypeDeclaration>(loc);
+			if (type == null)
+				return baseName;
+
+			int number = -1;
+			string proposedName;
+			do {
+				proposedName = AppendNumberToName (baseName, number++);
+			} while (type.Members.Select (m => m.GetChildByRole (Roles.Identifier)).Any (n => n.Name == proposedName));
+			return proposedName;
+		}
+
+		static string AppendNumberToName (string baseName, int number)
+		{
+			return baseName + (number > 0 ? (number + 1).ToString () : "");
+		}
 		#endregion
 
 		/// <summary>

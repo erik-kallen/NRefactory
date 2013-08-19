@@ -71,12 +71,12 @@ namespace ICSharpCode.NRefactory.CSharp.CodeCompletion
 		public class TestFactory
 		: ICompletionDataFactory
 		{
-			readonly CSharpResolver state;
+//			readonly CSharpResolver state;
 			readonly TypeSystemAstBuilder builder;
 
 			public TestFactory(CSharpResolver state)
 			{
-				this.state = state;
+//				this.state = state;
 				builder = new TypeSystemAstBuilder(state);
 				builder.ConvertUnboundTypeArguments = true;
 			}
@@ -6182,6 +6182,33 @@ public class TestMe
 			Assert.IsNotNull (provider.Find ("BMethod"), "method 'BMethod' not found.");
 		}
 
+		/// <summary>
+		/// Bug 13746 - Not useful completion for async delegates 
+		/// </summary>
+		[Test]
+		public void TestBug13746 ()
+		{
+			var provider = CreateProvider (
+				@"using System;
+using System.Threading.Tasks;
+
+class Test
+{
+    public static void Main()
+    {
+        var c = new HttpClient ();
+        $Task.Run (a$
+        return;
+    }
+}
+");
+			Assert.IsNotNull (provider, "provider not found.");
+			foreach (var p in provider.Data)
+				Console.WriteLine(p.DisplayText);
+			Assert.AreEqual(1, provider.Data.Count(cd => cd.DisplayText == "async delegate"));
+			Assert.AreEqual(1, provider.Data.Count(cd => cd.DisplayText == "delegate()"));
+			Assert.AreEqual(1, provider.Data.Count(cd => cd.DisplayText == "async delegate()"));
+		}
 
 
 	}

@@ -48,26 +48,31 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		{
 			return new GatherVisitor(context, this);
 		}
-
+		
 		class GatherVisitor : GatherVisitorBase<RedundantLambdaParameterTypeIssue>
 		{
 			public GatherVisitor(BaseRefactoringContext ctx, RedundantLambdaParameterTypeIssue issueProvider) : base (ctx, issueProvider)
 			{
 			}
-
+			
 			public override void VisitLambdaExpression(LambdaExpression lambdaexpression)
 			{
 				base.VisitLambdaExpression(lambdaexpression);
-
+				
 				if (lambdaexpression == null)
 					return;
-
+				
 				var arguments = lambdaexpression.Parameters;
-
+				
 				if (arguments.Any(f => f.Type.IsNull))
 					return;
 
-				bool singleArgument = (arguments.Any());
+				if (!LambdaTypeCanBeInferred(ctx, lambdaexpression, arguments)) {
+					return;
+				}
+				
+				bool singleArgument = (arguments.Count == 1);
+
 				foreach (var argument in arguments) {
 					var type = argument.GetChildByRole(Roles.Type);
 					AddIssue(type, ctx.TranslateString("Explicit type specification can be removed as it can be implicitly inferred."), ctx.TranslateString("Remove parameter type specification"), script => {
@@ -81,6 +86,24 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					});
 				}
 			}
+		}
+
+		public static bool LambdaTypeCanBeInferred(BaseRefactoringContext ctx, Expression expression, IEnumerable<ParameterDeclaration> arguments) {
+			var validTypes = CreateFieldAction.GetValidTypes(ctx.Resolver, expression).ToList();
+			foreach (var type in validTypes) {
+				if (type.Kind != TypeKind.Delegate)
+					continue;
+				var invokeMethod = type.GetDelegateInvokeMethod();
+				int p = 0;
+				foreach (var argument in arguments) {
+					var resolvedArgument = ctx.Resolve(argument.Type);
+					if (!invokeMethod.Parameters [p].Type.Equals(resolvedArgument.Type))
+						return false;
+					p++;
+				}
+			}
+
+			return true;
 		}
 	}
 }

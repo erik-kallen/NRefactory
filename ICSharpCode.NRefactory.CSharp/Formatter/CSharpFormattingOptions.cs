@@ -154,7 +154,12 @@ namespace ICSharpCode.NRefactory.CSharp
 			set;
 		}
 
-		public PropertyFormatting PropertyFormatting { // tested
+		public PropertyFormatting AutoPropertyFormatting { // tested
+			get;
+			set;
+		}
+
+		public PropertyFormatting SimplePropertyFormatting { // tested
 			get;
 			set;
 		}
@@ -222,12 +227,12 @@ namespace ICSharpCode.NRefactory.CSharp
 			set;
 		}
 
-		public bool AllowPropertyGetBlockInline { // tested
+		public PropertyFormatting SimpleGetBlockFormatting { // tested
 			get;
 			set;
 		}
 
-		public bool AllowPropertySetBlockInline { // tested
+		public PropertyFormatting SimpleSetBlockFormatting { // tested
 			get;
 			set;
 		}
@@ -302,6 +307,16 @@ namespace ICSharpCode.NRefactory.CSharp
 		public NewLinePlacement WhileNewLinePlacement { // tested
 			get;
 			set;
+		}
+
+		NewLinePlacement embeddedStatementPlacement = NewLinePlacement.NewLine;
+		public NewLinePlacement EmbeddedStatementPlacement {
+			get {
+				return embeddedStatementPlacement;
+			}
+			set {
+				embeddedStatementPlacement = value;
+			}
 		}
 		#endregion
 		
@@ -542,7 +557,22 @@ namespace ICSharpCode.NRefactory.CSharp
 			set;
 		}
 
-		public bool SpaceAroundNullCoalescingOperator {
+		public bool SpaceAroundNullCoalescingOperator { // Tested
+			get;
+			set;
+		}
+
+		public bool SpaceAfterUnsafeAddressOfOperator { // Tested
+			get;
+			set;
+		}
+
+		public bool SpaceAfterUnsafeAsteriskOfOperator { // Tested
+			get;
+			set;
+		}
+
+		public bool SpaceAroundUnsafeArrowOperator { // Tested
 			get;
 			set;
 		}
