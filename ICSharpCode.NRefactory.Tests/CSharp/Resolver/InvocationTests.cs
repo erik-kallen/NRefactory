@@ -817,6 +817,23 @@ static class C1 {
 		}
 
 		[Test]
+		public void ConstraintBetweenTwoInferredTypeArguments() {
+			string program = @"using System;
+using System.Collections.Generic;
+class Program
+{
+	static T[] ToArray<T, V>(List<V> list, T[] empty) where V : T {}
+	
+	public static void Test(List<Type> interfaces, Type[] emptyTypes)
+	{
+		return $ToArray(interfaces, emptyTypes)$;
+	}
+}";
+			var rr = Resolve<CSharpInvocationResolveResult>(program);
+			Assert.IsFalse(rr.IsError);
+		}
+
+		[Test]
 		public void ConditionallyRemovedInvocations()
 		{
 			string program = @"

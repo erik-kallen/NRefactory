@@ -87,7 +87,7 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="nunit.framework">
-      <HintPath>..\..\cecil\Test\libs\nunit-2.5.10\nunit.framework.dll</HintPath>
+      <HintPath>..\..\packages\NUnit.2.6.0.12054\lib\nunit.framework.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -125,7 +125,6 @@
     <Compile Include="CSharp\CodeIssues\AccessToModifiedClosureTests.cs" />
     <Compile Include="CSharp\CodeIssues\CS1717AssignmentMadeToSameVariableIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\CastExpressionOfIncompatibleTypeIssueTests.cs" />
-    <Compile Include="CSharp\CodeIssues\CompareFloatWithEqualityOperatorIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\ConstantConditionIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\DoubleNegationOperatorIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\ExplicitConversionInForEachIssueTests.cs" />
@@ -512,6 +511,19 @@
     <Compile Include="CSharp\CodeIssues\StringStartsWithIsCultureSpecificIssueTest.cs" />
     <Compile Include="CSharp\CodeIssues\StringEndsWithIsCultureSpecificIssueTest.cs" />
     <Compile Include="CSharp\CodeActions\InvertConditionalOperatorActionTests.cs" />
+    <Compile Include="CSharp\CodeIssues\CompareOfFloatsByEqualityOperatorIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\RedundantTernaryExpressionIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\SimplifyConditionalTernaryExpressionIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\BaseMethodCallWithDefaultParameterIssueTests.cs" />
+    <Compile Include="CSharp\CodeActions\NegateIsExpressionActionTests.cs" />
+    <Compile Include="CSharp\Analysis\DeclarationSpace\LocalDeclarationSpaceTests.cs" />
+    <Compile Include="CSharp\Analysis\DeclarationSpace\LocalDeclarationSpaceVisitorTests.cs" />
+    <Compile Include="CSharp\CodeIssues\XmlDocIssueIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\CS1573ParameterHasNoMatchingParamTagIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\CS0126ReturnMustBeFollowedByAnyExpressionTestes.cs" />
+    <Compile Include="CSharp\CodeActions\ConvertMethodGroupToLambdaActionTests.cs" />
+    <Compile Include="CSharp\CodeActions\ConvertMethodGroupToAnonymousMethodActionTests.cs" />
+    <Compile Include="CSharp\CodeActions\AddExceptionDescriptionActionTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ICSharpCode.NRefactory.CSharp\ICSharpCode.NRefactory.CSharp.csproj">
@@ -526,16 +538,22 @@
     <ProjectReference Include="..\ICSharpCode.NRefactory.Xml\ICSharpCode.NRefactory.Xml.csproj">
       <Project>{DC393B66-92ED-4CAD-AB25-CFEF23F3D7C6}</Project>
       <Name>ICSharpCode.NRefactory.Xml</Name>
+      <Private>True</Private>
     </ProjectReference>
     <ProjectReference Include="..\ICSharpCode.NRefactory\ICSharpCode.NRefactory.csproj">
       <Project>{3B2A5653-EC97-4001-BB9B-D90F1AF2C371}</Project>
       <Name>ICSharpCode.NRefactory</Name>
       <Private>True</Private>
     </ProjectReference>
-    </ProjectReference>
     <ProjectReference Include="..\ICSharpCode.NRefactory.IKVM\ICSharpCode.NRefactory.IKVM.csproj">
       <Project>{A727169F-D94F-443F-B305-B057D7F3B420}</Project>
       <Name>ICSharpCode.NRefactory.IKVM</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ICSharpCode.NRefactory.CSharp.Refactoring\ICSharpCode.NRefactory.CSharp.Refactoring.csproj">
+      <Project>{2A705FC6-1A9E-4941-9E47-254D79F2D9D5}</Project>
+      <Name>ICSharpCode.NRefactory.CSharp.Refactoring</Name>
+      <Private>False</Private>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
