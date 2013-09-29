@@ -23,18 +23,10 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-using System.Collections.Generic;
 using ICSharpCode.NRefactory.Semantics;
 using ICSharpCode.NRefactory.TypeSystem;
 using ICSharpCode.NRefactory.Refactoring;
-using ICSharpCode.NRefactory.CSharp.Analysis;
 using System.Linq;
-using ICSharpCode.NRefactory.CSharp.Resolver;
-using System.Threading;
-using ICSharpCode.NRefactory.TypeSystem.Implementation;
-using System;
-using System.Diagnostics;
-using ICSharpCode.NRefactory.Utils;
 
 namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
@@ -42,7 +34,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 	                  Description = "Base parameter has 'params' modifier, but missing in overrider",
 	                  Category = IssueCategories.PracticesAndImprovements,
 	                  Severity = Severity.Warning,
-	                  ResharperDisableKeyword = "BaseMemberHasParams")]
+	                  AnalysisDisableKeyword = "BaseMemberHasParams")]
 	public class BaseMemberHasParamsIssue : GatherVisitorCodeIssueProvider
 	{
 		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
@@ -61,7 +53,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				if (!methodDeclaration.HasModifier(Modifiers.Override))
 					return;
 				var lastParam = methodDeclaration.Parameters.LastOrDefault();
-				if (lastParam == null )
+				if (lastParam == null || lastParam.ParameterModifier == ParameterModifier.Params)
 					return;
 				var type = lastParam.Type as ComposedType;
 				if (type == null || !type.ArraySpecifiers.Any())
@@ -72,14 +64,14 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				var baseMember = InheritanceHelper.GetBaseMember(rr.Member) as IMethod;
 				if (baseMember == null || baseMember.Parameters.Count == 0 || !baseMember.Parameters.Last().IsParams)
 					return;
-				AddIssue(
+				AddIssue(new CodeIssue(
 					lastParam.NameToken,
 					string.Format(ctx.TranslateString("Base method '{0}' has a 'params' modifier"), baseMember.FullName),
 					ctx.TranslateString("Add 'params' modifier"),
 					script => {
 						script.ChangeModifier(lastParam, ParameterModifier.Params);
 					}
-				);
+				));
 			}
 
 			public override void VisitBlockStatement(BlockStatement blockStatement)

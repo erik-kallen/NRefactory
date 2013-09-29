@@ -35,8 +35,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 	                  Description = "Convert 'Nullable<T>' to the short form 'T?'",
 	                  Category = IssueCategories.Opportunities,
 	                  Severity = Severity.Suggestion,
-	                  IssueMarker = IssueMarker.WavedLine,
-	                  ResharperDisableKeyword = "ConvertNullableToShortForm")]
+	                  AnalysisDisableKeyword = "ConvertNullableToShortForm")]
 	public class ConvertNullableToShortFormIssue : GatherVisitorCodeIssueProvider
 	{
 		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
@@ -49,22 +48,24 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			public GatherVisitor (BaseRefactoringContext ctx) : base (ctx)
 			{
 			}
+			static readonly AstType nullType = new SimpleType("");
 
 			void CheckType(AstType simpleType, AstType arg)
 			{
-				if (arg == null)
+				if (arg == null || nullType.IsMatch(arg))
 					return;
 				var rr = ctx.Resolve(simpleType);
 				if (rr == null || rr.IsError || rr.Type.Namespace != "System" || rr.Type.Name != "Nullable")
 					return;
-				AddIssue(
+
+				AddIssue(new CodeIssue(
 					simpleType,
 					string.Format(ctx.TranslateString("Type can be simplified to '{0}?'"), arg), 
 					string.Format(ctx.TranslateString("Rewrite to '{0}?'"), arg),
 					script =>  {
 						script.Replace(simpleType, arg.Clone().MakeNullableType());
 					}
-				);
+				));
 			}
 
 			public override void VisitSimpleType(SimpleType simpleType)

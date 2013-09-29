@@ -43,7 +43,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			if (property == null || !property.NameToken.Contains(context.Location))
 				yield break;
 
-			var field = RemoveBackingStoreAction.GetBackingField(context);
+			var field = RemoveBackingStoreAction.GetBackingField(context, property);
 			if (field == null)
 				yield break;
 			var resolvedType = ReflectionHelper.ParseReflectionName ("System.EventHandler").Resolve (context.Compilation);
@@ -56,7 +56,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				var methodDeclaration = CreateEventInvocatorAction.CreateEventInvocator (context, type, eventDeclaration, eventDeclaration.Variables.First (), resolvedType.GetDelegateInvokeMethod (), false);
 				var stmt = new ExpressionStatement (new InvocationExpression (
 					new IdentifierExpression (methodDeclaration.Name),
-					new MemberReferenceExpression (new TypeReferenceExpression (context.CreateShortType("System", "EventArgs")), "Empty")
+					new MemberReferenceExpression (context.CreateShortType("System", "EventArgs"), "Empty")
 				));
 				script.InsertWithCursor(
 					context.TranslateString("Create event invocator"),

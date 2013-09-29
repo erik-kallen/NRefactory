@@ -34,12 +34,11 @@ using ICSharpCode.NRefactory.Refactoring;
 namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
 	[IssueDescription("CS0659: Class overrides Object.Equals but not Object.GetHashCode.",
-					Description = "If two objects are equal then they must both have the same hash code",
-					Category = IssueCategories.CompilerErrors,
-					Severity = Severity.Warning,
-					IssueMarker = IssueMarker.WavedLine,
-					PragmaWarning = 1717,
-					ResharperDisableKeyword = "CSharpWarnings::CS0659")]
+		Description = "If two objects are equal then they must both have the same hash code",
+		Category = IssueCategories.CompilerWarnings,
+		Severity = Severity.Warning,
+		PragmaWarning = 1717,
+		AnalysisDisableKeyword = "CSharpWarnings::CS0659")]
 	public class CS0659ClassOverrideEqualsWithoutGetHashCode : GatherVisitorCodeIssueProvider
 	{
 		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
@@ -58,18 +57,18 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			{
 				base.VisitMethodDeclaration(methodDeclaration);
 
-				var resolvedResult = ctx.Resolve(methodDeclaration);
+				var resolvedResult = ctx.Resolve(methodDeclaration) as MemberResolveResult;
 				if (resolvedResult == null)
 					return;
-				var method = (resolvedResult as MemberResolveResult).Member;
+				var method = resolvedResult.Member as IMethod;
 
-				if (!method.Name.Equals("Equals") || ! method.IsOverride)
+				if (method == null || !method.Name.Equals("Equals") || ! method.IsOverride)
 					return;
 
 				if (methodDeclaration.Parameters.Count != 1)
 					return;
 	
-				if (!(method as IMethod).Parameters.Single().Type.FullName.Equals("System.Object"))
+				if (!method.Parameters.Single().Type.FullName.Equals("System.Object"))
 					return;
 
 				var classDeclration = method.DeclaringTypeDefinition;
@@ -108,7 +107,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				blockStatement.Add(returnStatement);
 				getHashCode.Body = blockStatement;
 
-				AddIssue(
+				AddIssue(new CodeIssue(
 					(node as MethodDeclaration).NameToken, 
 					ctx.TranslateString("If two objects are equal then they must both have the same hash code"),
 					new CodeAction(
@@ -117,7 +116,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					script.InsertAfter(node, getHashCode); 
 				},
 				node
-				));
+					)));
 			}
 		}
 	}

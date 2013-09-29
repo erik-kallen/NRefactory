@@ -39,7 +39,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 	                  Category = IssueCategories.CompilerWarnings,
 	                  Severity = Severity.Warning,
 	                  PragmaWarning = 649,
-	                  ResharperDisableKeyword = "UnassignedReadonlyField.Compiler")]
+	                  AnalysisDisableKeyword = "UnassignedReadonlyField.Compiler")]
 	public class UnassignedReadonlyFieldIssue : GatherVisitorCodeIssueProvider
 	{
 		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
@@ -49,7 +49,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 
 		class GatherVisitor : GatherVisitorBase<UnassignedReadonlyFieldIssue>
 		{
-			List<Tuple<VariableInitializer, IVariable>> potentialReadonlyFields = new List<Tuple<VariableInitializer, IVariable>>();
+			readonly Stack<List<Tuple<VariableInitializer, IVariable>>> fieldStack = new Stack<List<Tuple<VariableInitializer, IVariable>>>();
 
 			public GatherVisitor(BaseRefactoringContext context) : base (context)
 			{
@@ -57,11 +57,11 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 
 			void Collect()
 			{
-				foreach (var varDecl in potentialReadonlyFields) {
+				foreach (var varDecl in fieldStack.Peek()) {
 					var resolveResult = ctx.Resolve(varDecl.Item1) as MemberResolveResult;
 					if (resolveResult == null || resolveResult.IsError)
 						continue;
-					AddIssue(
+					AddIssue(new CodeIssue(
 						varDecl.Item1.NameToken,
 						string.Format(ctx.TranslateString("Readonly field '{0}' is never assigned"), varDecl.Item1.Name),
 						ctx.TranslateString("Initialize field from constructor parameter"),
@@ -74,12 +74,10 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 								Name = resolveResult.Member.DeclaringTypeDefinition.Name,
 								Modifiers = Modifiers.Public,
 								Body = new BlockStatement {
-									new ExpressionStatement(
 										new AssignmentExpression(
-										new MemberReferenceExpression(new ThisReferenceExpression(), varDecl.Item1.Name),
-										new IdentifierExpression(varDecl.Item1.Name)
-									)
-									)
+											new MemberReferenceExpression(new ThisReferenceExpression(), varDecl.Item1.Name),
+											new IdentifierExpression(varDecl.Item1.Name)
+										)
 								},
 								Parameters = {
 									new ParameterDeclaration(c.CreateShortType(resolveResult.Type), varDecl.Item1.Name)
@@ -88,16 +86,18 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 						}
 						);
 					}
-					);
+					));
 				}
 			}
 
 			public override void VisitTypeDeclaration(TypeDeclaration typeDeclaration)
 			{
+				var list = new List<Tuple<VariableInitializer, IVariable>>();
+				fieldStack.Push(list);
 				foreach (var fieldDeclaration in ConvertToConstantIssue.CollectFields(this, typeDeclaration)) {
 					if (!fieldDeclaration.HasModifier(Modifiers.Readonly))
 						continue;
-					var rr = ctx.Resolve(fieldDeclaration.ReturnType);
+//					var rr = ctx.Resolve(fieldDeclaration.ReturnType);
 				
 					if (fieldDeclaration.Variables.Count() > 1)
 						continue;
@@ -107,27 +107,24 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					var mr = ctx.Resolve(variable) as MemberResolveResult;
 					if (mr == null)
 						continue;
-					potentialReadonlyFields.Add(Tuple.Create(variable, mr.Member as IVariable)); 
+					list.Add(Tuple.Create(variable, mr.Member as IVariable)); 
 				}
 				base.VisitTypeDeclaration(typeDeclaration);
 				Collect();
-				potentialReadonlyFields.Clear();
+				fieldStack.Pop();
 			}
 
 			public override void VisitBlockStatement(BlockStatement blockStatement)
 			{
-				base.VisitBlockStatement(blockStatement);
-				if (blockStatement.Parent is EntityDeclaration || blockStatement.Parent is Accessor) {
-					var assignmentAnalysis = new ConvertToConstantIssue.VariableUsageAnalyzation(ctx);
-					var newVars = new List<Tuple<VariableInitializer, IVariable>>();
-					blockStatement.AcceptVisitor(assignmentAnalysis); 
-					foreach (var variable in potentialReadonlyFields) {
-						if (assignmentAnalysis.GetStatus(variable.Item2) == VariableState.Changed)
-							continue;
-						newVars.Add(variable);
-					}
-					potentialReadonlyFields = newVars;
+				var assignmentAnalysis = new ConvertToConstantIssue.VariableUsageAnalyzation(ctx);
+				var newVars = new List<Tuple<VariableInitializer, IVariable>>();
+				blockStatement.AcceptVisitor(assignmentAnalysis); 
+				foreach (var variable in fieldStack.Pop()) {
+					if (assignmentAnalysis.GetStatus(variable.Item2) == VariableState.Changed)
+						continue;
+					newVars.Add(variable);
 				}
+				fieldStack.Push(newVars);
 			}
 		}
 	}

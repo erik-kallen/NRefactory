@@ -43,7 +43,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 	                  Description = "Convert field to readonly",
 	                  Category = IssueCategories.PracticesAndImprovements,
 	                  Severity = Severity.Suggestion,
-	                  ResharperDisableKeyword = "FieldCanBeMadeReadOnly.Local")]
+	                  AnalysisDisableKeyword = "FieldCanBeMadeReadOnly.Local")]
 	public class FieldCanBeMadeReadOnlyIssue : GatherVisitorCodeIssueProvider
 	{
 		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
@@ -53,7 +53,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 
 		class GatherVisitor : GatherVisitorBase<FieldCanBeMadeReadOnlyIssue>
 		{
-			List<Tuple<VariableInitializer, IVariable>> potentialReadonlyFields = new List<Tuple<VariableInitializer, IVariable>> ();
+			readonly Stack<List<Tuple<VariableInitializer, IVariable>>> fieldStack = new Stack<List<Tuple<VariableInitializer, IVariable>>>();
 
 			public GatherVisitor(BaseRefactoringContext context) : base (context)
 			{
@@ -61,8 +61,8 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 
 			void Collect()
 			{
-				foreach (var varDecl in potentialReadonlyFields) {
-					AddIssue(
+				foreach (var varDecl in fieldStack.Peek()) {
+					AddIssue(new CodeIssue(
 						varDecl.Item1.NameToken,
 						ctx.TranslateString("Convert to readonly"),
 						ctx.TranslateString("To readonly"),
@@ -70,12 +70,15 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 						var field = (FieldDeclaration)varDecl.Item1.Parent;
 						script.ChangeModifier(field, field.Modifiers | Modifiers.Readonly);
 					}
-					);
+					));
 				}
 			}
 
 			public override void VisitTypeDeclaration(TypeDeclaration typeDeclaration)
 			{	
+				var list = new List<Tuple<VariableInitializer, IVariable>>();
+				fieldStack.Push(list);
+
 				foreach (var fieldDeclaration in ConvertToConstantIssue.CollectFields (this, typeDeclaration)) {
 					if (fieldDeclaration.HasModifier(Modifiers.Const) || fieldDeclaration.HasModifier(Modifiers.Readonly))
 						continue;
@@ -91,16 +94,20 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					var mr = ctx.Resolve(variable) as MemberResolveResult;
 					if (mr == null)
 						continue;
-					potentialReadonlyFields.Add(Tuple.Create(variable, mr.Member as IVariable)); 
+					list.Add(Tuple.Create(variable, mr.Member as IVariable)); 
 				}
 				base.VisitTypeDeclaration(typeDeclaration);
 				Collect();
-				potentialReadonlyFields.Clear();
+				fieldStack.Pop();
 			}
 
 			public override void VisitConstructorDeclaration(ConstructorDeclaration constructorDeclaration)
 			{
-				// SKIP
+				foreach (var node in constructorDeclaration.Descendants) {
+					if (node is AnonymousMethodExpression || node is LambdaExpression) {
+						node.AcceptVisitor(this);
+					}
+				}
 			}
 
 			public override void VisitBlockStatement(BlockStatement blockStatement)
@@ -108,12 +115,12 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				var assignmentAnalysis = new ConvertToConstantIssue.VariableUsageAnalyzation (ctx);
 				var newVars = new List<Tuple<VariableInitializer, IVariable>>();
 				blockStatement.AcceptVisitor(assignmentAnalysis); 
-				foreach (var variable in potentialReadonlyFields) {
+				foreach (var variable in fieldStack.Pop()) {
 					if (assignmentAnalysis.GetStatus(variable.Item2) == VariableState.Changed)
 						continue;
 					newVars.Add(variable);
 				}
-				potentialReadonlyFields = newVars;
+				fieldStack.Push(newVars);
 			}
 		}
 	}

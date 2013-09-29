@@ -43,7 +43,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 	                  Description = "Convert local variable or field to constant",
 	                  Category = IssueCategories.PracticesAndImprovements,
 	                  Severity = Severity.Suggestion,
-	                  ResharperDisableKeyword = "ConvertToConstant.Local")]
+	                  AnalysisDisableKeyword = "ConvertToConstant.Local")]
 	public class ConvertToConstantIssue : GatherVisitorCodeIssueProvider
 	{
 		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
@@ -90,7 +90,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 
 		class GatherVisitor : GatherVisitorBase<ConvertToConstantIssue>
 		{
-			List<Tuple<VariableInitializer, IVariable>> potentialConstantFields = new List<Tuple<VariableInitializer, IVariable>> ();
+			readonly Stack<List<Tuple<VariableInitializer, IVariable>>> fieldStack = new Stack<List<Tuple<VariableInitializer, IVariable>>>();
 
 			public GatherVisitor(BaseRefactoringContext context) : base (context)
 			{
@@ -98,16 +98,16 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 
 			void Collect()
 			{
-				foreach (var varDecl in potentialConstantFields) {
-					AddIssue(
+				foreach (var varDecl in fieldStack.Peek()) {
+					AddIssue(new CodeIssue(
 						varDecl.Item1.NameToken,
 						ctx.TranslateString("Convert to constant"),
 						ctx.TranslateString("To const"),
 						script => {
-						var constVarDecl = (FieldDeclaration)varDecl.Item1.Parent;
+							var constVarDecl = (FieldDeclaration)varDecl.Item1.Parent;
 							script.ChangeModifier(constVarDecl, (constVarDecl.Modifiers & ~Modifiers.Static) | Modifiers.Const);
 						}
-					);
+					));
 				}
 			}
 
@@ -119,24 +119,28 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					var assignmentAnalysis = new VariableUsageAnalyzation (ctx);
 					var newVars = new List<Tuple<VariableInitializer, IVariable>>();
 					blockStatement.AcceptVisitor(assignmentAnalysis); 
-					foreach (var variable in potentialConstantFields) {
+					foreach (var variable in fieldStack.Pop()) {
 						if (assignmentAnalysis.GetStatus(variable.Item2) == VariableState.Changed)
 							continue;
 						newVars.Add(variable);
 					}
-					potentialConstantFields = newVars;
+					fieldStack.Push(newVars);
 				}
 			}
 
 			static bool IsValidConstType(IType type)
 			{
 				var def = type.GetDefinition();
+				if (def == null)
+					return false;
 				return KnownTypeCode.Boolean <= def.KnownTypeCode && def.KnownTypeCode <= KnownTypeCode.Decimal ||
 					def.KnownTypeCode == KnownTypeCode.String;
 			}
 
 			public override void VisitTypeDeclaration(TypeDeclaration typeDeclaration)
 			{
+				var list = new List<Tuple<VariableInitializer, IVariable>>();
+				fieldStack.Push(list);
 				foreach (var fieldDeclaration in ConvertToConstantIssue.CollectFields(this, typeDeclaration)) {
 					if (IsSuppressed(fieldDeclaration.StartLocation))
 						continue;
@@ -155,11 +159,11 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					var mr = ctx.Resolve(variable) as MemberResolveResult;
 					if (mr == null)
 						continue;
-					potentialConstantFields.Add(Tuple.Create(variable, mr.Member as IVariable)); 
+					list.Add(Tuple.Create(variable, mr.Member as IVariable)); 
 				}
 				base.VisitTypeDeclaration(typeDeclaration);
 				Collect();
-				potentialConstantFields.Clear();
+				fieldStack.Pop();
 			}
 
 			public override void VisitVariableDeclarationStatement (VariableDeclarationStatement varDecl)
@@ -179,25 +183,34 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				if (returnTypeRR.Type.IsReferenceType.HasValue && returnTypeRR.Type.IsReferenceType.Value)
 					return;
 
-				var vr = ctx.Resolve(varDecl.Variables.First()) as LocalResolveResult;
+				var variable = varDecl.Variables.First();
+				var vr = ctx.Resolve(variable) as LocalResolveResult;
 				if (vr == null)
 					return;
+
+				if (ctx.Resolve(variable.Initializer).ConstantValue == null)
+					return;
+
 				var assignmentAnalysis = new VariableUsageAnalyzation (ctx);
 
 				containingBlock.AcceptVisitor(assignmentAnalysis);
 
 				if (assignmentAnalysis.GetStatus(vr.Variable) == VariableState.Changed)
 					return;
-				AddIssue (
-					varDecl.Variables.First().NameToken,
+				AddIssue (new CodeIssue(
+					variable.NameToken,
 					ctx.TranslateString ("Convert to constant"),
 					ctx.TranslateString ("To const"),
 					script => {
 						var constVarDecl = (VariableDeclarationStatement)varDecl.Clone ();
 						constVarDecl.Modifiers |= Modifiers.Const;
+						if (varDecl.Type.IsVar()) {
+							var builder = ctx.CreateTypeSystemAstBuilder(varDecl);
+							constVarDecl.Type = builder.ConvertType (ctx.Resolve(varDecl.Type).Type);
+						}
 						script.Replace (varDecl, constVarDecl);
 					}
-				);
+				));
 			}
 		}
 	

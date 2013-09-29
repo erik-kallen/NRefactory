@@ -35,8 +35,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 	[IssueDescription("Redundant assignment",
 	                  Description = "Value assigned to a variable or parameter is not used in all execution path.",
 	                  Category = IssueCategories.CodeQualityIssues,
-	                  Severity = Severity.Warning,
-	                  IssueMarker = IssueMarker.GrayOut)]
+	                  Severity = Severity.Warning)]
 	public class RedundantAssignmentIssue : GatherVisitorCodeIssueProvider
 	{
 		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
@@ -285,12 +284,11 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 						}
 					}
 
-					AddIssue(grayOutNode, issueDescription, actionDescription, script => {
+					AddIssue(new CodeIssue(grayOutNode, issueDescription, actionDescription, script => {
 						var variableNode = (VariableInitializer)node;
 						if (containsInvocations && isDeclareStatement) {
 							//add the column ';' that will be removed after the next line replacement
-							var expression = (Expression)variableNode.Initializer.Clone();
-							var invocation = new ExpressionStatement(expression);
+							var expression = (Statement)variableNode.Initializer.Clone();
 							if (containsLaterAssignments && varDecl != null) {
 								var clonedDefinition = (VariableDeclarationStatement)varDecl.Clone();
 
@@ -300,7 +298,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 								variableNodeClone.Initializer = null;
 								script.InsertBefore(node.Parent, clonedDefinition);
 							}
-							script.Replace(node.Parent, invocation);
+							script.Replace(node.Parent, expression);
 							return;
 						}
 						if (isDeclareStatement && !containsRefOrOut && !containsLaterAssignments) {
@@ -314,17 +312,17 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 							script.Replace(varDecl.Type, shortExpressionType);
 						}
 						script.Replace(node, replacement);
-					});
+					}) { IssueMarker = IssueMarker.GrayOut });
 				}
 
 				var assignmentExpr = node.Parent as AssignmentExpression;
 				if (assignmentExpr == null)
 					return;
 				if (assignmentExpr.Parent is ExpressionStatement) {
-					AddIssue(assignmentExpr.Parent, issueDescription, actionDescription, script => script.Remove(assignmentExpr.Parent));
+					AddIssue(new CodeIssue(assignmentExpr.Parent, issueDescription, actionDescription, script => script.Remove(assignmentExpr.Parent)) { IssueMarker = IssueMarker.GrayOut });
 				} else {
-					AddIssue(assignmentExpr.Left.StartLocation, assignmentExpr.OperatorToken.EndLocation, issueDescription, actionDescription,
-					         script => script.Replace(assignmentExpr, assignmentExpr.Right.Clone()));
+					AddIssue(new CodeIssue(assignmentExpr.Left.StartLocation, assignmentExpr.OperatorToken.EndLocation, issueDescription, actionDescription,
+						script => script.Replace(assignmentExpr, assignmentExpr.Right.Clone())) { IssueMarker = IssueMarker.GrayOut });
 				}
 			}
 
@@ -352,12 +350,17 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				return false;
 			}
 
-			static bool IsInsideTryBlock(AstNode node)
+			static bool IsInsideTryOrCatchBlock(AstNode node)
 			{
 				var tryCatchStatement = node.GetParent<TryCatchStatement>();
-				if (tryCatchStatement == null)
-					return false;
-				return tryCatchStatement.TryBlock.Contains(node.StartLocation.Line, node.StartLocation.Column);
+				if (tryCatchStatement != null) {
+					if (tryCatchStatement.TryBlock.Contains(node.StartLocation))
+						return true;
+					foreach (var catchBlock in tryCatchStatement.CatchClauses)
+						if (catchBlock.Body.Contains(node.StartLocation))
+							return true;
+				}
+				return false;
 			}
 
 			enum NodeState
@@ -380,6 +383,8 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				stack.Push(startNode);
 				while (stack.Count > 0) {
 					var node = stack.Pop();
+					if (node == null)
+						continue;
 					if (node.References.Count > 0) {
 						nodeStates [node] = IsAssignment(node.References [0]) ?
 							NodeState.UsageUnreachable : NodeState.UsageReachable;
@@ -414,7 +419,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 
 				foreach (var node in assignments) {
 					// we do not analyze an assignment inside a try block as it can jump to any catch block or finally block
-					if (IsInsideTryBlock(node.References [0]))
+					if (IsInsideTryOrCatchBlock(node.References [0]))
 						continue;
 					ProcessNode(node, true, nodeStates);
 				}

@@ -129,7 +129,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 
                 var validTypes =
                     (from type in candidateTypes
-                     where !tryResolve || ParameterCanBeDemotedIssue.TypeChangeResolvesCorrectly(ctx, parameter, rootResolutionNode, type)
+                     where !tryResolve || ParameterCanBeDeclaredWithBaseTypeIssue.TypeChangeResolvesCorrectly(ctx, parameter, rootResolutionNode, type)
                      select type).ToList();
                 if (!validTypes.Any()) return;
 
@@ -137,10 +137,10 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
                 if (foundType == null)
                     return;
 
-				AddIssue(parameter.NameToken, string.Format(ctx.TranslateString("Parameter can be {0}"),
+				AddIssue(new CodeIssue(parameter.NameToken, string.Format(ctx.TranslateString("Parameter can be {0}"),
 				                                            foundType.Name),string.Format(ctx.TranslateString("Parameter can be {0}"),
 				                              foundType.Name),
-                         script => script.Replace(parameter.Type, CreateShortType(ctx, foundType, parameter)));
+					script => script.Replace(parameter.Type, CreateShortType(ctx, foundType, parameter))));
             }
 
 		    public static AstType CreateShortType(BaseRefactoringContext refactoringContext, IType expressionType, AstNode node)
