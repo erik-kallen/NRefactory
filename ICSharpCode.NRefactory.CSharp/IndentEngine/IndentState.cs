@@ -334,7 +334,7 @@ namespace ICSharpCode.NRefactory.CSharp
 		/// <summary>
 		///     Defines transitions for all types of open brackets.
 		/// </summary>
-		public static Dictionary<char, Action<IndentState>> OpenBrackets = 
+		public static Dictionary<char, Action<IndentState>> OpenBrackets =
 			new Dictionary<char, Action<IndentState>>
 		{ 
 			{ '{', state => state.ChangeState<BracesBodyState>() }, 
@@ -465,6 +465,12 @@ namespace ICSharpCode.NRefactory.CSharp
 		/// </summary>
 		public bool IsEqualCharPushed;
 
+		/// <summary>
+		///     True if the dot member (e.g. method invocation) indentation has
+		///     been handled in the current statement.
+		/// </summary>
+		public bool IsMemberReferenceDotHandled;
+
 		public override char ClosedBracket
 		{
 			get { return '}'; }
@@ -483,6 +489,7 @@ namespace ICSharpCode.NRefactory.CSharp
 			NestedIfStatementLevels = new Stack<Indent>(prototype.NestedIfStatementLevels);
 			IsRightHandExpression = prototype.IsRightHandExpression;
 			IsEqualCharPushed = prototype.IsEqualCharPushed;
+			IsMemberReferenceDotHandled = prototype.IsMemberReferenceDotHandled;
 			LastBlockIndent = prototype.LastBlockIndent;
 		}
 
@@ -525,15 +532,18 @@ namespace ICSharpCode.NRefactory.CSharp
 			{
 				IsEqualCharPushed = true;
 			}
-			else if (ch == '.' && IsRightHandExpression)
+			else if (ch == '.' && !IsMemberReferenceDotHandled)
 			{
 				// OPTION: CSharpFormattingOptions.AlignToMemberReferenceDot
-				if (Engine.formattingOptions.AlignToMemberReferenceDot)
+				if (Engine.formattingOptions.AlignToMemberReferenceDot && !Engine.isLineStart)
 				{
+					IsMemberReferenceDotHandled = true;
 					NextLineIndent.ExtraSpaces = Math.Max(0, Engine.column - NextLineIndent.CurIndent - 1);
 				}
-				else if (Engine.previousChar == ')' && ThisLineIndent.ExtraSpaces > 0 && Engine.isLineStart)
+				else if (Engine.isLineStart)
 				{
+					IsMemberReferenceDotHandled = true;
+
 					ThisLineIndent.ExtraSpaces = 0;
 					ThisLineIndent.Push(IndentType.Continuation);
 					NextLineIndent = ThisLineIndent.Clone();
@@ -604,6 +614,7 @@ namespace ICSharpCode.NRefactory.CSharp
 		public virtual void OnStatementExit()
 		{
 			IsRightHandExpression = false;
+			IsMemberReferenceDotHandled = false;
 
 			NextLineIndent.ExtraSpaces = 0;
 			NextLineIndent.PopWhile(IndentType.Continuation);
@@ -721,7 +732,7 @@ namespace ICSharpCode.NRefactory.CSharp
 				var isKeywordTemplateConstraint =
 					classStructKeywords.Contains(keyword) &&
 					(NextBody == Body.Class || NextBody == Body.Struct || NextBody == Body.Interface);
-				
+
 				if (!isKeywordTemplateConstraint)
 				{
 					NextBody = bodies[keyword];
@@ -791,7 +802,7 @@ namespace ICSharpCode.NRefactory.CSharp
 					}
 				}
 			}
-			
+
 			if (blocks.Contains(keyword) && Engine.NeedsReindent)
 			{
 				LastBlockIndent = Indent.ConvertFrom(Engine.CurrentIndent, ThisLineIndent, Engine.textEditorOptions);
@@ -1016,7 +1027,7 @@ namespace ICSharpCode.NRefactory.CSharp
 					ThisLineIndent = Parent.ThisLineIndent.Clone();
 				}
 			}
-			
+
 			base.CheckKeyword(keyword);
 		}
 
@@ -1267,7 +1278,7 @@ namespace ICSharpCode.NRefactory.CSharp
 				switch (DirectiveType)
 				{
 					case PreProcessorDirective.If:
-						Engine.ifDirectiveEvalResult.Push (eval(DirectiveStatement.ToString()));
+						Engine.ifDirectiveEvalResult.Push(eval(DirectiveStatement.ToString()));
 						if (Engine.ifDirectiveEvalResult.Peek())
 						{
 							// the if/elif directive is true -> continue with the previous state
@@ -1280,8 +1291,10 @@ namespace ICSharpCode.NRefactory.CSharp
 						}
 						break;
 					case PreProcessorDirective.Elif:
-						if (Engine.ifDirectiveEvalResult.Count > 0) {
-							if (!Engine.ifDirectiveEvalResult.Peek()) {
+						if (Engine.ifDirectiveEvalResult.Count > 0)
+						{
+							if (!Engine.ifDirectiveEvalResult.Peek())
+							{
 								Engine.ifDirectiveEvalResult.Pop();
 								goto case PreProcessorDirective.If;
 							}
@@ -1399,7 +1412,7 @@ namespace ICSharpCode.NRefactory.CSharp
 			Region,
 			// EndRegion, // use Region instead
 			Pragma,
-			Warning, 
+			Warning,
 			Error,
 			Line,
 			Define,
@@ -1853,7 +1866,7 @@ namespace ICSharpCode.NRefactory.CSharp
 			{
 				ExitState();
 			}
-            
+
 			IsEscaped = ch == '\\' && !IsEscaped;
 		}
 

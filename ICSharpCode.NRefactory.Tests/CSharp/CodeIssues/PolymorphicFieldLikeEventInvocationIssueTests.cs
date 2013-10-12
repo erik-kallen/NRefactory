@@ -1,5 +1,5 @@
 //
-// ConvertToAutoPropertyIssueTests.cs
+// PolymorphicFieldLikeEventInvocationIssueTests.cs
 //
 // Author:
 //       Mike Krüger <mkrueger@xamarin.com>
@@ -23,80 +23,90 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-using NUnit.Framework;
 using ICSharpCode.NRefactory.CSharp.Refactoring;
+using NUnit.Framework;
+using System;
 
 namespace ICSharpCode.NRefactory.CSharp.CodeIssues
 {
+
 	[TestFixture]
-	public class ConvertToAutoPropertyIssueTests : InspectionActionTestBase
+	public class PolymorphicFieldLikeEventInvocationIssueTests : InspectionActionTestBase
 	{
 		[Test]
-		public void TestBasicCase ()
+		public void TestSimpleCase()
 		{
-			TestIssue<ConvertToAutoPropertyIssue>(@"
-class FooBar
+			TestIssue<PolymorphicFieldLikeEventInvocationIssue>(@"
+using System;
+
+public class Bar
 {
-	int foo;
-	public int Foo {
-		get { return foo; }
-		set { foo = value; }
+	public virtual event EventHandler FooBarEvent;
+}
+
+public class Foo : Bar
+{
+	public override event EventHandler FooBarEvent;
+
+	public void FooBar()
+	{
+		FooBarEvent(this, EventArgs.Empty);
 	}
 }
 ");
 		}
 
 		[Test]
-		public void TestThisSyntaxCase ()
+		public void TestCustomEvent()
 		{
-			TestIssue<ConvertToAutoPropertyIssue>(@"
-class FooBar
+			// Should be marked as error
+			TestIssue<PolymorphicFieldLikeEventInvocationIssue>(@"
+using System;
+
+public class Bar
 {
-	int foo;
-	public int Foo {
-		get { return this.foo; }
-		set { this.foo = value; }
+	public virtual event EventHandler FooBarEvent;
+}
+
+public class Foo : Bar
+{
+	public override event EventHandler FooBarEvent {
+		add {}
+		remove {}
+	}
+
+	public void FooBar()
+	{
+		FooBarEvent(this, EventArgs.Empty);
 	}
 }
 ");
 		}
 
 		[Test]
-		public void TestDisable ()
+		public void TestDisable()
 		{
-			TestWrongContext<ConvertToAutoPropertyIssue>(@"
-class FooBar
-{
-	int foo;
+			TestWrongContext<PolymorphicFieldLikeEventInvocationIssue>(@"
+using System;
 
-	// ReSharper disable once ConvertToAutoProperty
-	public int Foo {
-		get { return foo; }
-		set { foo = value; }
+public class Bar
+{
+	public virtual event EventHandler FooBarEvent;
+}
+
+public class Foo : Bar
+{
+	public override event EventHandler FooBarEvent;
+
+	public void FooBar()
+	{
+		// ReSharper disable once PolymorphicFieldLikeEventInvocation
+		FooBarEvent(this, EventArgs.Empty);
 	}
 }
 ");
 		}
 
-
-		[Test]
-		public void TestArrayBug ()
-		{
-			TestWrongContext<ConvertToAutoPropertyIssue>(@"
-class Bar {
-	public int foo;
-}
-class FooBar
-{
-	Bar bar;
-
-	public int Foo {
-		get { return bar.foo; }
-		set { bar.foo = value; }
-	}
-}
-");
-		}
 	}
 }
 

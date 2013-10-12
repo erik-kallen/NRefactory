@@ -30,6 +30,7 @@ using ICSharpCode.NRefactory.Refactoring;
 using ICSharpCode.NRefactory.TypeSystem;
 using ICSharpCode.NRefactory.PatternMatching;
 using System.Runtime.InteropServices;
+using Mono.CSharp;
 
 namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
@@ -51,6 +52,14 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				: base (ctx)
 			{
 			}
+
+			void AddIssue(MethodDeclaration methodDeclaration)
+			{
+				var title = ctx.TranslateString("Redundant method override");
+				AddIssue(new CodeIssue(methodDeclaration, title, ctx.TranslateString("Remove redundant method override"), script => script.Remove(methodDeclaration)) {
+					IssueMarker = IssueMarker.GrayOut
+				});
+			}
 			
 			public override void VisitMethodDeclaration(MethodDeclaration methodDeclaration)
 			{
@@ -66,28 +75,44 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				//Debuger.WriteInFile(expr.FirstChild.ToString());
 				if (expr == null)
 					return;
-				if (expr.FirstChild is InvocationExpression) {
-					var memberReferenceExpression = (expr.FirstChild as InvocationExpression).Target as MemberReferenceExpression;
-					if (memberReferenceExpression == null || 
-						memberReferenceExpression.MemberName != methodDeclaration.Name ||
-						!(memberReferenceExpression.FirstChild is BaseReferenceExpression))
-						return;
-					var title = ctx.TranslateString("Redundant method override");
-					AddIssue(new CodeIssue(methodDeclaration, title, ctx.TranslateString("Remove redundant method override"), script => script.Remove(methodDeclaration)) { IssueMarker = IssueMarker.GrayOut });
-				} else if (expr.FirstChild is CSharpTokenNode && expr.FirstChild.ToString().Equals("return")) {
-					var invocationExpression = expr.FirstChild.NextSibling as InvocationExpression;
+
+				var returnStatement = expr as ReturnStatement;
+				if (returnStatement != null) {
+					var invocationExpression = returnStatement.Expression as InvocationExpression;
 					if (invocationExpression == null)
 						return;
 					var memberReferenceExpression = invocationExpression.Target as MemberReferenceExpression;
-					if (memberReferenceExpression == null || 
-						memberReferenceExpression.MemberName != methodDeclaration.Name ||
-						!(memberReferenceExpression.FirstChild is BaseReferenceExpression))
+					if (memberReferenceExpression == null ||
+					    memberReferenceExpression.MemberName != methodDeclaration.Name ||
+					    !(memberReferenceExpression.FirstChild is BaseReferenceExpression))
 						return;
-					var title = ctx.TranslateString("Redundant method override");
-					AddIssue(new CodeIssue(methodDeclaration, title, ctx.TranslateString("Remove redundant method override"), script => script.Remove(methodDeclaration)) { IssueMarker = IssueMarker.GrayOut });
+					if (methodDeclaration.Name == "GetHashCode" && !methodDeclaration.Parameters.Any()) {
+						var rr = ctx.Resolve(methodDeclaration) as MemberResolveResult;
+						if (rr != null && rr.Member.ReturnType.IsKnownType(KnownTypeCode.Int32)) {
+							if (rr.Member.DeclaringType.GetMethods(m => m.Name == "Equals" && m.IsOverride, GetMemberOptions.IgnoreInheritedMembers).Any())
+								return;
+						}
+					}
+
+					AddIssue(methodDeclaration);
 				}
-				return;
+				var stmtExpr = expr as ExpressionStatement;
+				if (stmtExpr == null)
+					return;
+				var invocation = stmtExpr.Expression as InvocationExpression;
+				if (invocation != null) {
+					var memberReferenceExpression = invocation.Target as MemberReferenceExpression;
+					if (memberReferenceExpression == null ||
+					    memberReferenceExpression.MemberName != methodDeclaration.Name ||
+					    !(memberReferenceExpression.FirstChild is BaseReferenceExpression))
+						return;
+					AddIssue(methodDeclaration);
+				}
 			}
+
+			static readonly AstNode setterPattern = new ExpressionStatement(
+				new AssignmentExpression (new AnyNode ("left"), new IdentifierExpression("value"))
+			);
 			
 			public override void VisitPropertyDeclaration(PropertyDeclaration propertyDeclaration)
 			{
@@ -108,15 +133,14 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					return;
 				
 				var resultProperty = ctx.Resolve(propertyDeclaration) as MemberResolveResult;
-				var basetype = resultProperty.Member.DeclaringTypeDefinition.DirectBaseTypes.FirstOrDefault();
-				if (basetype == null)
+				if (resultProperty == null)
 					return;
-				var baseProperty = basetype.GetMembers(f => f.Name.Equals(propertyDeclaration.Name)).FirstOrDefault();
+				var baseProperty = InheritanceHelper.GetBaseMember(resultProperty.Member) as IProperty;
 				if (baseProperty == null)
 					return;
 				
-				bool hasBaseGetter = ((baseProperty as IProperty).Getter != null);
-				bool hasBaseSetter = ((baseProperty as IProperty).Setter != null);
+				bool hasBaseGetter = baseProperty.Getter != null;
+				bool hasBaseSetter = baseProperty.Setter != null;
 				
 				if (hasBaseGetter) {
 					if (hasGetter) {
@@ -136,14 +160,10 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				
 				if (hasBaseSetter) {
 					if (hasSetter) {
-					
-						var expr = propertyDeclaration.Setter.Body.Statements.FirstOrNullObject();
-					
-						if (expr == null || !(expr.FirstChild is AssignmentExpression))
+						var match = setterPattern.Match(propertyDeclaration.Setter.Body.Statements.FirstOrNullObject());
+						if (!match.Success)
 							return;
-					
-						var memberReferenceExpression = (expr.FirstChild as AssignmentExpression).Left as MemberReferenceExpression;
-					
+						var memberReferenceExpression = match.Get("left").Single() as MemberReferenceExpression;
 						if (memberReferenceExpression == null || 
 							memberReferenceExpression.MemberName != propertyDeclaration.Name ||
 							!(memberReferenceExpression.FirstChild is BaseReferenceExpression))
@@ -174,16 +194,14 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					return;
 				
 				var resultIndexer = ctx.Resolve(indexerDeclaration) as MemberResolveResult;
-				var basetype = resultIndexer.Member.DeclaringType.DirectBaseTypes.First();
-				if (basetype == null)
+				if (resultIndexer == null)
 					return;
-
-				var baseIndexer = basetype.GetMembers(f => f.Name == "Item").FirstOrDefault();
+				var baseIndexer = InheritanceHelper.GetBaseMember(resultIndexer.Member) as IProperty;
 				if (baseIndexer == null)
 					return;
-				
-				bool hasBaseGetter = ((baseIndexer as IProperty).Getter != null);
-				bool hasBaseSetter = ((baseIndexer as IProperty).Setter != null);
+
+				bool hasBaseGetter = (baseIndexer.Getter != null);
+				bool hasBaseSetter = (baseIndexer.Setter != null);
 				
 				if (hasBaseGetter) {
 					if (hasGetter) {
@@ -203,14 +221,10 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				
 				if (hasBaseSetter) {
 					if (hasSetter) {
-					
-						var expr = indexerDeclaration.Setter.Body.Statements.FirstOrNullObject();
-					
-						if (expr == null || !(expr.FirstChild is AssignmentExpression))
+						var match = setterPattern.Match(indexerDeclaration.Setter.Body.Statements.FirstOrNullObject());
+						if (!match.Success)
 							return;
-					
-						Expression memberReferenceExpression = (expr.FirstChild as AssignmentExpression).Left;
-					
+						var memberReferenceExpression = match.Get("left").Single() as IndexerExpression;
 						if (memberReferenceExpression == null || 
 							!(memberReferenceExpression.FirstChild is BaseReferenceExpression))
 							return;

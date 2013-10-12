@@ -1,5 +1,5 @@
 //
-// ConvertToAutoPropertyIssueTests.cs
+// PartOfBodyCanBeConvertedToQueryIssueTests.cs
 //
 // Author:
 //       Mike Krüger <mkrueger@xamarin.com>
@@ -23,80 +23,117 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-using NUnit.Framework;
+using ICSharpCode.NRefactory.CSharp.CodeActions;
 using ICSharpCode.NRefactory.CSharp.Refactoring;
+using NUnit.Framework;
 
 namespace ICSharpCode.NRefactory.CSharp.CodeIssues
 {
+	[Ignore]
 	[TestFixture]
-	public class ConvertToAutoPropertyIssueTests : InspectionActionTestBase
+	public class PartOfBodyCanBeConvertedToQueryIssueTests : InspectionActionTestBase
 	{
 		[Test]
-		public void TestBasicCase ()
+		public void TestWhere()
 		{
-			TestIssue<ConvertToAutoPropertyIssue>(@"
-class FooBar
+			Test<LoopCanBeConvertedToQueryIssue>(@"
+using System;
+
+public class Bar
 {
-	int foo;
-	public int Foo {
-		get { return foo; }
-		set { foo = value; }
+	public void Foo (int[] i)
+	{
+		foreach (var x in i) {
+			if (x < 10) {
+				Console.WriteLine(x);
+			}
+		}
+	}
+}
+", @"
+using System;
+using System.Linq;
+
+public class Bar
+{
+	public void Foo (int[] i)
+	{
+		foreach (var x in i.Where (x => x < 10)) {
+			Console.WriteLine(x);
+		}
 	}
 }
 ");
 		}
 
 		[Test]
-		public void TestThisSyntaxCase ()
+		public void TestOfType()
 		{
-			TestIssue<ConvertToAutoPropertyIssue>(@"
-class FooBar
+			Test<LoopCanBeConvertedToQueryIssue>(@"
+using System;
+
+public class Bar
 {
-	int foo;
-	public int Foo {
-		get { return this.foo; }
-		set { this.foo = value; }
+	public void Foo(object[] i)
+	{
+		foreach (var x in i) {
+			if (x is int) {
+				Console.WriteLine(x);
+			}
+		}
+	}
+}
+", @"
+using System;
+using System.Linq;
+
+public class Bar
+{
+	public void Foo(object[] i)
+	{
+		foreach (var x in i.OfType<int> ()) {
+			Console.WriteLine(x);
+		}
 	}
 }
 ");
 		}
 
 		[Test]
-		public void TestDisable ()
+		public void TestOfTypeTakeWhile()
 		{
-			TestWrongContext<ConvertToAutoPropertyIssue>(@"
-class FooBar
-{
-	int foo;
+			Test<LoopCanBeConvertedToQueryIssue>(@"
+using System;
 
-	// ReSharper disable once ConvertToAutoProperty
-	public int Foo {
-		get { return foo; }
-		set { foo = value; }
+public class Bar
+{
+	public void Foo(object[] i)
+	{
+		foreach (var x in i) {
+			if (x is int) {
+				if ((int)x < 10)
+					break;
+				Console.WriteLine(x);
+			}
+		}
+	}
+}
+", @"
+using System;
+using System.Linq;
+
+public class Bar
+{
+	public void Foo(object[] i)
+	{
+		foreach (var x in i.OfType<int> ().TakeWhile (x => x >= 10)) {
+			Console.WriteLine(x);
+		}
 	}
 }
 ");
 		}
 
-
-		[Test]
-		public void TestArrayBug ()
-		{
-			TestWrongContext<ConvertToAutoPropertyIssue>(@"
-class Bar {
-	public int foo;
-}
-class FooBar
-{
-	Bar bar;
-
-	public int Foo {
-		get { return bar.foo; }
-		set { bar.foo = value; }
-	}
-}
-");
-		}
 	}
 }
 

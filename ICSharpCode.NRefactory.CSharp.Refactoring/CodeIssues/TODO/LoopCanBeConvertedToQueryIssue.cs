@@ -1,5 +1,5 @@
 //
-// ConvertToAutoPropertyIssueTests.cs
+// LoopCanBeConvertedToQueryIssue.cs
 //
 // Author:
 //       Mike Krüger <mkrueger@xamarin.com>
@@ -23,79 +23,28 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-using NUnit.Framework;
-using ICSharpCode.NRefactory.CSharp.Refactoring;
+using System;
+using ICSharpCode.NRefactory.Refactoring;
 
-namespace ICSharpCode.NRefactory.CSharp.CodeIssues
+namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
-	[TestFixture]
-	public class ConvertToAutoPropertyIssueTests : InspectionActionTestBase
+//	[IssueDescription ("Loop can be converted into LINQ expression",
+//		Description = "Loop can be converted into LINQ expression",
+//		Category = IssueCategories.Opportunities,
+//		Severity = Severity.Suggestion,
+//		AnalysisDisableKeyword = "LoopCanBeConvertedToQuery")]
+	public class LoopCanBeConvertedToQueryIssue : GatherVisitorCodeIssueProvider
 	{
-		[Test]
-		public void TestBasicCase ()
+		protected override IGatherVisitor CreateVisitor(BaseRefactoringContext context)
 		{
-			TestIssue<ConvertToAutoPropertyIssue>(@"
-class FooBar
-{
-	int foo;
-	public int Foo {
-		get { return foo; }
-		set { foo = value; }
-	}
-}
-");
+			return new GatherVisitor(context);
 		}
 
-		[Test]
-		public void TestThisSyntaxCase ()
+		class GatherVisitor : GatherVisitorBase<LoopCanBeConvertedToQueryIssue>
 		{
-			TestIssue<ConvertToAutoPropertyIssue>(@"
-class FooBar
-{
-	int foo;
-	public int Foo {
-		get { return this.foo; }
-		set { this.foo = value; }
-	}
-}
-");
-		}
-
-		[Test]
-		public void TestDisable ()
-		{
-			TestWrongContext<ConvertToAutoPropertyIssue>(@"
-class FooBar
-{
-	int foo;
-
-	// ReSharper disable once ConvertToAutoProperty
-	public int Foo {
-		get { return foo; }
-		set { foo = value; }
-	}
-}
-");
-		}
-
-
-		[Test]
-		public void TestArrayBug ()
-		{
-			TestWrongContext<ConvertToAutoPropertyIssue>(@"
-class Bar {
-	public int foo;
-}
-class FooBar
-{
-	Bar bar;
-
-	public int Foo {
-		get { return bar.foo; }
-		set { bar.foo = value; }
-	}
-}
-");
+			public GatherVisitor (BaseRefactoringContext ctx) : base (ctx)
+			{
+			}
 		}
 	}
 }

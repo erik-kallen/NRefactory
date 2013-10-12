@@ -176,7 +176,7 @@ class Foo
 			Assert.AreEqual("\t\t", indent.ThisLineIndent);
 			Assert.AreEqual("\t\t\t", indent.NextLineIndent);
 		}
-	
+
 		[Test]
 		public void UnalignEmbeddedUsingStatements()
 		{
@@ -569,6 +569,106 @@ class Foo
 			Assert.AreEqual("\t\t    ", indent.ThisLineIndent);
 			Assert.AreEqual("\t\t", indent.NextLineIndent);
 		}
+
+		[Test]
+		public void BasicMethodContinuation()
+		{
+			CSharpFormattingOptions fmt = FormattingOptionsFactory.CreateMono();
+			fmt.AlignToFirstMethodCallArgument = false;
+			var indent = Helper.CreateEngine(@"
+class Foo
+{
+	void Test ()
+	{
+		Call(A)
+			.Foo ()$", fmt);
+			Assert.AreEqual("\t\t\t", indent.ThisLineIndent);
+		}
+
+		[Test]
+		public void DeepMethodContinuation()
+		{
+			CSharpFormattingOptions fmt = FormattingOptionsFactory.CreateMono();
+			fmt.AlignToFirstMethodCallArgument = false;
+			var indent = Helper.CreateEngine(@"
+class Foo
+{
+	void Test ()
+	{
+		Call(A)
+			.Foo ()
+			.Foo ()
+			.Foo ()$", fmt);
+			Assert.AreEqual("\t\t\t", indent.ThisLineIndent);
+		}
+
+		[Test]
+		public void DeepMethodContinuationStatement()
+		{
+			CSharpFormattingOptions fmt = FormattingOptionsFactory.CreateMono();
+			fmt.AlignToFirstMethodCallArgument = false;
+			var indent = Helper.CreateEngine(@"
+class Foo
+{
+	void Test ()
+	{
+		if (true)
+			Call(A)
+				.Foo ()
+				.Foo ()
+				.Foo (); $", fmt);
+			Assert.AreEqual("\t\t\t\t", indent.ThisLineIndent);
+			Assert.AreEqual("\t\t", indent.NextLineIndent);
+		}
+
+		[Test]
+		public void DeepMethodContinuationStatement_AlignToMemberReferenceDot()
+		{
+			CSharpFormattingOptions fmt = FormattingOptionsFactory.CreateMono();
+			fmt.AlignToMemberReferenceDot = true;
+			var indent = Helper.CreateEngine(@"
+class Foo
+{
+	void Test ()
+	{
+		if (true)
+			Call(A).Foo ()
+			       .Foo ()
+			       .Foo (); $", fmt);
+			Assert.AreEqual("\t\t\t       ", indent.ThisLineIndent);
+			Assert.AreEqual("\t\t", indent.NextLineIndent);
+		}
+
+		[Test]
+		public void TestMethodContinuation()
+		{
+			CSharpFormattingOptions fmt = FormattingOptionsFactory.CreateMono();
+			var indent = Helper.CreateEngine(@"
+class Foo
+{
+	void Test ()
+	{
+		obj
+			.Foo (); $", fmt);
+			Assert.AreEqual("\t\t\t", indent.ThisLineIndent);
+			Assert.AreEqual("\t\t", indent.NextLineIndent);
+		}
+
+		[Test]
+		public void TestMethodContinuationCase2()
+		{
+			CSharpFormattingOptions fmt = FormattingOptionsFactory.CreateMono();
+			var indent = Helper.CreateEngine(@"
+class Foo
+{
+	void Test ()
+	{
+		var foo = obj
+			.Foo (); $", fmt);
+			Assert.AreEqual("\t\t\t", indent.ThisLineIndent);
+			Assert.AreEqual("\t\t", indent.NextLineIndent);
+		}
+
 	}
 }
 

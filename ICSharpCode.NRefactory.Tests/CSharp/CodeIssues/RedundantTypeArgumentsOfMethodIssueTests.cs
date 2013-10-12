@@ -1,21 +1,21 @@
-// 
-// LowercaseLongLiteralSuffixTests.cs
-// 
+//
+// RedundantTypeArgumentsOfMethodIssueTests.cs
+//
 // Author:
-//      Luís Reis <luiscubal@gmail.com>
-// 
-// Copyright (c) 2013 Luís Reis
-// 
+//       Mike Krüger <mkrueger@xamarin.com>
+//
+// Copyright (c) 2013 Xamarin Inc. (http://xamarin.com)
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,83 +23,73 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
+using System;
+using NUnit.Framework;
 using ICSharpCode.NRefactory.CSharp.CodeActions;
 using ICSharpCode.NRefactory.CSharp.Refactoring;
-using NUnit.Framework;
 
 namespace ICSharpCode.NRefactory.CSharp.CodeIssues
 {
+	[Ignore]
 	[TestFixture]
-	public class LongLiteralEndingLowerLIssueTests : InspectionActionTestBase
+	public class RedundantTypeArgumentsOfMethodIssueTests : InspectionActionTestBase
 	{
 		[Test]
-		public void TestNormal()
+		public void TestSimpleCase ()
 		{
-			Test<LongLiteralEndingLowerLIssue>(@"
-class Test
+			Test<RedundantTypeArgumentsOfMethodIssue>(@"
+using System;
+
+public class Bar
 {
-	public long x = 3l;
-}", @"
-class Test
+	void Foo<T> (T t)
+	{
+		Console.WriteLine (t);
+	}
+
+	public void FooBar ()
+	{
+		Foo<int> (5);
+	}
+}
+", @"
+using System;
+
+public class Bar
 {
-	public long x = 3L;
-}");
+	void Foo<T> (T t)
+	{
+		Console.WriteLine (t);
+	}
+
+	public void FooBar ()
+	{
+		Foo (5);
+	}
+}
+");
 		}
 
 		[Test]
-		public void TestDisabledForUnsignedFirst()
+		public void TestDisable ()
 		{
-			Test<LongLiteralEndingLowerLIssue>(@"
-class Test
-{
-	public ulong x = 3ul;
-}", 0);
-		}
+			TestWrongContext<RedundantTypeArgumentsOfMethodIssue>(@"
+using System;
 
-		[Test]
-		public void TestUnsigned()
-		{
-			Test<LongLiteralEndingLowerLIssue>(@"
-class Test
+public class Bar
 {
-	public ulong x = 3lu;
-}", @"
-class Test
-{
-	public ulong x = 3LU;
-}");
-		}
+	void Foo<T> (T t)
+	{
+		Console.WriteLine (t);
+	}
 
-		[Test]
-		public void TestDisabledForUppercase()
-		{
-			Test<LongLiteralEndingLowerLIssue>(@"
-class Test
-{
-	public long x = 3L;
-}", 0);
-		}
-
-		[Test]
-		public void TestDisabledForString()
-		{
-			Test<LongLiteralEndingLowerLIssue>(@"
-class Test
-{
-	public string x = ""l"";
-}", 0);
-		}
-
-		[Test]
-		public void TestDisable()
-		{
-			TestWrongContext<LongLiteralEndingLowerLIssue>(@"
-class Test
-{
-	// ReSharper disable once LongLiteralEndingLowerL
-	public long x = 3l;
-}");
+	public void FooBar ()
+	{
+		// ReSharper disable once RedundantTypeArgumentsOfMethod
+		Foo<int> (5);
+	}
+}
+");
 		}
 	}
 }

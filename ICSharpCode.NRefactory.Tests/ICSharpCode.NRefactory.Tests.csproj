@@ -606,6 +606,12 @@
     <Compile Include="CSharp\CodeIssues\ConvertToAutoPropertyIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\StaticConstructorParameterIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\CS0183ExpressionIsAlwaysOfProvidedTypeIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\PolymorphicFieldLikeEventInvocationIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\ConvertTailRecursiveCallToLoopIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\LoopCanBeConvertedToQueryIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\PartOfBodyCanBeConvertedToQueryIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\RedundantTypeArgumentsOfMethodIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\PossibleMistakenCallToGetTypeIssueTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ICSharpCode.NRefactory.CSharp\ICSharpCode.NRefactory.CSharp.csproj">
