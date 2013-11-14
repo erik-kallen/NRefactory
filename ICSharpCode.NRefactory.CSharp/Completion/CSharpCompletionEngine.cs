@@ -1,4 +1,4 @@
-﻿// 
+// 
 // CSharpCompletionEngine.cs
 //  
 // Author:
@@ -904,12 +904,18 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 								if (token == "enum")
 									return HandleEnumContext();
 								var wrapper = new CompletionDataWrapper(this);
-
 								AddTypesAndNamespaces(
 									wrapper,
 									GetState(),
 									null,
-									t => currentType != null && !currentType.ReflectionName.Equals(t.ReflectionName) ? t : null
+									t =>  {
+										if (currentType != null && currentType.ReflectionName.Equals(t.ReflectionName))
+											return null;
+										var def = t.GetDefinition();
+										if (def != null && t.Kind != TypeKind.Interface && (def.IsSealed ||def.IsStatic))
+											return null;
+										return t;
+									}
 								);
 								return wrapper.Result;
 							}
@@ -992,6 +998,9 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 						}
 
 						if (identifierStart.Node is Identifier) {
+							if (identifierStart.Node.Parent is GotoStatement)
+								return null;
+
 							// May happen in variable names
 							return controlSpace ? DefaultControlSpaceItems(identifierStart) : null;
 						}
@@ -1689,10 +1698,17 @@ namespace ICSharpCode.NRefactory.CSharp.Completion
 			Func<IType, IType> typePred = null;
 			if (IsAttributeContext(node)) {
 				var attribute = Compilation.FindType(KnownTypeCode.Attribute);
+				typePred = t => t.GetAllBaseTypeDefinitions().Any(bt => bt.Equals(attribute)) ? t : null;
+			}
+			if (node != null && node.Role == Roles.BaseType) {
 				typePred = t => {
-					return t.GetAllBaseTypeDefinitions().Any(bt => bt.Equals(attribute)) ? t : null;
+					var def = t.GetDefinition();
+					if (def != null && t.Kind != TypeKind.Interface && (def.IsSealed || def.IsStatic))
+						return null;
+					return t;
 				};
 			}
+
 			if (node != null && !(node is NamespaceDeclaration) || state.CurrentTypeDefinition != null || isInGlobalDelegate) {
 				AddTypesAndNamespaces(wrapper, state, node, typePred);
 

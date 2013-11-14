@@ -39,7 +39,7 @@ namespace ICSharpCode.NRefactory.CSharp.TypeSystem
 		/// Should be incremented when fixing bugs so that project contents cached on disk
 		/// (which might be incorrect due to the bug) are re-created.
 		/// </summary>
-		internal const int version = 1;
+		internal const int version = 2;
 		
 		readonly CSharpUnresolvedFile unresolvedFile;
 		UsingScope usingScope;
@@ -787,7 +787,7 @@ namespace ICSharpCode.NRefactory.CSharp.TypeSystem
 			a.IsStatic = ev.IsStatic;
 			a.IsSynthetic = ev.IsSynthetic;
 			a.IsVirtual = ev.IsVirtual;
-			a.HasBody = false;
+			a.HasBody = true; // even if it's compiler-generated; the body still exists
 			a.ReturnType = KnownTypeReference.Void;
 			a.Parameters.Add(valueParameter);
 			return a;
@@ -972,7 +972,7 @@ namespace ICSharpCode.NRefactory.CSharp.TypeSystem
 				return interningProvider.Intern(new SimpleConstantValue(targetType, pc.Value));
 			}
 			// cast to the desired type
-			return interningProvider.Intern(new ConstantCast(targetType, c));
+			return interningProvider.Intern(new ConstantCast(targetType, c, true));
 		}
 		
 		IConstantValue ConvertAttributeArgument(Expression expression)
@@ -1068,7 +1068,8 @@ namespace ICSharpCode.NRefactory.CSharp.TypeSystem
 				ConstantExpression v = castExpression.Expression.AcceptVisitor(this);
 				if (v == null)
 					return null;
-				return interningProvider.Intern(new ConstantCast(ConvertTypeReference(castExpression.Type), v));
+				var typeReference = ConvertTypeReference(castExpression.Type);
+				return interningProvider.Intern(new ConstantCast(typeReference, v, false));
 			}
 			
 			public override ConstantExpression VisitCheckedExpression(CheckedExpression checkedExpression)

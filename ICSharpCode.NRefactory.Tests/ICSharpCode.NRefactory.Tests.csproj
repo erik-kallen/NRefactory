@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
   <PropertyGroup>
     <ProjectGuid>{63D3B27A-D966-4902-90B3-30290E1692F1}</ProjectGuid>
@@ -272,12 +272,12 @@
     <Compile Include="TypeSystem\CyclicProjectDependency.cs" />
     <Compile Include="TypeSystem\GetAllBaseTypesTest.cs" />
     <Compile Include="TypeSystem\GetMembersTests.cs" />
-    <Compile Include="TypeSystem\IkvmLoaderTests.cs" />
+    <Compile Include="TypeSystem\IkvmLoaderTests.cs" Condition="Exists('..\..\ikvm\reflect\IKVM.Reflection.csproj')" />
     <Compile Include="TypeSystem\InheritanceHelperTests.cs" />
     <None Include="TypeSystem\LazyLoadedCecilLoaderTests.cs" />
     <Compile Include="TypeSystem\ReflectionHelperTests.cs" />
     <None Include="TypeSystem\SerializedCecilLoaderTests.cs" />
-    <Compile Include="TypeSystem\SerializedIkvmLoaderTests.cs" />
+    <Compile Include="TypeSystem\SerializedIkvmLoaderTests.cs" Condition="Exists('..\..\ikvm\reflect\IKVM.Reflection.csproj')" />
     <Compile Include="TypeSystem\StructureTests.cs" />
     <Compile Include="TypeSystem\TestInterningProvider.cs" />
     <Compile Include="TypeSystem\TypeParameterTests.cs" />
@@ -612,6 +612,7 @@
     <Compile Include="CSharp\CodeIssues\PartOfBodyCanBeConvertedToQueryIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\RedundantTypeArgumentsOfMethodIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\PossibleMistakenCallToGetTypeIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\RedundantNotNullAttributeInNonNullableTypeTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ICSharpCode.NRefactory.CSharp\ICSharpCode.NRefactory.CSharp.csproj">
@@ -633,7 +634,7 @@
       <Name>ICSharpCode.NRefactory</Name>
       <Private>True</Private>
     </ProjectReference>
-    <ProjectReference Include="..\ICSharpCode.NRefactory.IKVM\ICSharpCode.NRefactory.IKVM.csproj">
+    <ProjectReference Include="..\ICSharpCode.NRefactory.IKVM\ICSharpCode.NRefactory.IKVM.csproj" Condition="Exists('..\..\ikvm\reflect\IKVM.Reflection.csproj')">
       <Project>{A727169F-D94F-443F-B305-B057D7F3B420}</Project>
       <Name>ICSharpCode.NRefactory.IKVM</Name>
     </ProjectReference>

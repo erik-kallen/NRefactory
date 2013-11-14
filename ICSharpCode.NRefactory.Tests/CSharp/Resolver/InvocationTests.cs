@@ -958,9 +958,10 @@ public class C {
 			Assert.That(rr.Member, Is.InstanceOf<SpecializedMember>());
 			Assert.That(rr.Member.Parameters[0].Type.Kind == TypeKind.Array);
 		}
-
+		
 		[Test]
-		public void PrivateExtensionMethodIsNotUsableFromOtherClass() {
+		public void PrivateExtensionMethodIsNotUsableFromOtherClass()
+		{
 			string program = @"
 using System.Collections.Generic;
 namespace Foo {
@@ -977,7 +978,6 @@ namespace Bar {
 namespace Bazz {
 	using Foo;
 	using Bar;
-
 	public class Client {
 		public void Method() {
 			var x = $new object().Extension<int>()$;
@@ -990,13 +990,14 @@ namespace Bazz {
 		}
 
 		[Test]
-		public void PrivateExtensionMethodIsUsableFromSameClass() {
+		public void PrivateExtensionMethodIsUsableFromSameClass()
+		{
 			string program = @"
 using System.Collections.Generic;
 namespace Foo {
 	public static class FooExtensions {
 		static T Extension<T>(this object value) { return default(T); }
-
+		
 		static void Method() {
 			var x = $new object().Extension<int>()$;
 		}

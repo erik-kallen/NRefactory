@@ -456,7 +456,7 @@ namespace Mono.CSharp
 		//
 		InputKind ToplevelOrStatement (SeekableStreamReader seekable)
 		{
-			Tokenizer tokenizer = new Tokenizer (seekable, source_file, new ParserSession (), false);
+			Tokenizer tokenizer = new Tokenizer (seekable, source_file, new ParserSession (), ctx.Report, false);
 			
 			// Prefer contextual block keywords over identifiers
 			tokenizer.parsing_block++;
@@ -1213,10 +1213,6 @@ namespace Mono.CSharp
 	public class Undo
 	{
 		List<Action> undo_actions;
-		
-		public Undo ()
-		{
-		}
 
 		public void AddTypeContainer (TypeContainer current_container, TypeDefinition tc)
 		{

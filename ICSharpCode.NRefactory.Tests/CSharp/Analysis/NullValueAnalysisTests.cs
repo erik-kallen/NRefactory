@@ -42,10 +42,9 @@ namespace ICSharpCode.NRefactory.CSharp.Analysis
 		{
 			bool supportsVersion5;
 
-			internal string defaultNamespace;
 			public override string DefaultNamespace {
 				get {
-					return defaultNamespace;
+					return string.Empty;
 				}
 			}
 
@@ -2121,7 +2120,7 @@ namespace JetBrains.Annotations
 class TestClass
 {
 	[JetBrains.Annotations.AssertionMethod]
-	void AssertNotNull([JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] object condition = 1) {
+	void AssertNotNull([JetBrains.Annotations.AssertionCondition(JetBrains.Annotations.AssertionConditionType.IS_NOT_NULL)] string condition = ""x"") {
 	}
 	
 	void TestMethod(string x)

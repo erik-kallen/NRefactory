@@ -6266,9 +6266,53 @@ class Program
 ", provider => Assert.IsNotNull(provider.Find("Foo"), "'Foo' not found."));
 		}
 
+		/// <summary>
+		/// Bug 15387 - Broken completion for class inheritance at namespace level 
+		/// </summary>
+		[Test]
+		public void TestBug15387 ()
+		{
+			CombinedProviderTest(@"using System;
+$class Foo : $
+", provider => Assert.IsNotNull(provider.Find("IDisposable"), "'IDisposable' not found."));
+		}
+
+		/// <summary>
+		/// Bug 15550 - Inheritance completion 
+		/// </summary>
+		[Test]
+		public void TestBug15550 ()
+		{
+			CombinedProviderTest(@"using System;
+$class Foo : $
+", provider => Assert.IsNull(provider.Find("Console"), "'Console' found (static class)."));
+		}
+
+		[Test]
+		public void TestBug15550Case2 ()
+		{
+
+			CombinedProviderTest(@"using System;
+$class Foo : IDisposable, F$
+", provider => Assert.IsNull(provider.Find("Activator"), "'Activator' found (sealed class)."));
+		}
 
 
+		[Test]
+		public void TestGotoCompletion ()
+		{
+			var provider = CreateCtrlSpaceProvider(@"using System;
 
+class Program
+{
+	public void Hello()
+	{
+		$goto i$
+	}
+}
 
+");
+			Assert.IsTrue(provider == null || provider.Count == 0); 
+		}
 	}
 }

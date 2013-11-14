@@ -658,6 +658,42 @@ namespace ICSharpCode.NRefactory.TypeSystem
 		}
 		
 		[Test]
+		public void MethodWithOptionalNullableParameter()
+		{
+			IParameter p = GetTypeDefinition(typeof(ParameterTests)).Methods.Single(m => m.Name == "MethodWithOptionalNullableParameter").Parameters.Single();
+			Assert.IsTrue(p.IsOptional);
+			Assert.IsFalse(p.IsRef);
+			Assert.IsFalse(p.IsOut);
+			Assert.IsFalse(p.IsParams);
+			Assert.AreEqual(0, p.Attributes.Count);
+			Assert.IsNull(p.ConstantValue);
+		}
+		
+		[Test]
+		public void MethodWithOptionalLongParameter()
+		{
+			IParameter p = GetTypeDefinition(typeof(ParameterTests)).Methods.Single(m => m.Name == "MethodWithOptionalLongParameter").Parameters.Single();
+			Assert.IsTrue(p.IsOptional);
+			Assert.IsFalse(p.IsRef);
+			Assert.IsFalse(p.IsOut);
+			Assert.IsFalse(p.IsParams);
+			Assert.AreEqual(1L, p.ConstantValue);
+			Assert.AreEqual(typeof(long), p.ConstantValue.GetType());
+		}
+		
+		[Test]
+		public void MethodWithOptionalNullableLongParameter()
+		{
+			IParameter p = GetTypeDefinition(typeof(ParameterTests)).Methods.Single(m => m.Name == "MethodWithOptionalNullableLongParameter").Parameters.Single();
+			Assert.IsTrue(p.IsOptional);
+			Assert.IsFalse(p.IsRef);
+			Assert.IsFalse(p.IsOut);
+			Assert.IsFalse(p.IsParams);
+			Assert.AreEqual(1L, p.ConstantValue);
+			Assert.AreEqual(typeof(long), p.ConstantValue.GetType());
+		}
+		
+		[Test]
 		public void GenericDelegate_Variance()
 		{
 			ITypeDefinition type = GetTypeDefinition(typeof(GenericDelegate<,>));
@@ -961,6 +997,16 @@ namespace ICSharpCode.NRefactory.TypeSystem
 		}
 		
 		[Test]
+		public void PropertyAccessorsHaveBody()
+		{
+			ITypeDefinition type = GetTypeDefinition(typeof(ClassWithStaticAndNonStaticMembers));
+			foreach (var prop in type.Properties) {
+				Assert.IsTrue(prop.Getter.HasBody, prop.Getter.Name);
+				Assert.IsTrue(prop.Setter.HasBody, prop.Setter.Name);
+			}
+		}
+		
+		[Test]
 		public void EventAccessorNames()
 		{
 			ITypeDefinition type = GetTypeDefinition(typeof(ClassWithStaticAndNonStaticMembers));
@@ -971,6 +1017,16 @@ namespace ICSharpCode.NRefactory.TypeSystem
 			var normalEvent = type.Events.Single(e => e.Name == "Event3");
 			Assert.AreEqual("add_Event3", normalEvent.AddAccessor.Name);
 			Assert.AreEqual("remove_Event3", normalEvent.RemoveAccessor.Name);
+		}
+		
+		[Test]
+		public void EventAccessorHaveBody()
+		{
+			ITypeDefinition type = GetTypeDefinition(typeof(ClassWithStaticAndNonStaticMembers));
+			foreach (var ev in type.Events) {
+				Assert.IsTrue(ev.AddAccessor.HasBody, ev.AddAccessor.Name);
+				Assert.IsTrue(ev.RemoveAccessor.HasBody, ev.RemoveAccessor.Name);
+			}
 		}
 
 		[Test]

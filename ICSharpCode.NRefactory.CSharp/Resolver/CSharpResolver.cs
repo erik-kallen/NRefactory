@@ -1840,7 +1840,8 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 				foreach (var method in inputGroup) {
 					if ((name != null && method.Name != name) || !lookup.IsAccessible(method, false))
 						continue;
-					
+					if (!lookup.IsAccessible(method, false))
+						continue;
 					IType[] inferredTypes;
 					if (typeArguments != null && typeArguments.Count > 0) {
 						if (method.TypeParameters.Count != typeArguments.Count)
@@ -1926,7 +1927,7 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 		
 		/// <summary>
 		/// Gets all extension methods available in the current using scope.
-		/// This list includes unaccessible
+		/// This list includes inaccessible methods.
 		/// </summary>
 		IList<List<IMethod>> GetAllExtensionMethods()
 		{
