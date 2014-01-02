@@ -6164,6 +6164,8 @@ void case_320()
 void case_321()
 #line 2666 "cs-parser.jay"
 {
+		lexer.parsing_modifiers = true;
+	  
 	  	/* here will be evaluated after CLOSE_BLACE is consumed.*/
 		if (doc_support)
 			Lexer.doc_state = XmlCommentState.Allowed;
