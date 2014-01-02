@@ -131,7 +131,6 @@
     <Compile Include="CSharp\CodeIssues\ForControlVariableIsNeverModifiedIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\LocalVariableHidesMemberIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\LocalVariableNotUsedIssueTests.cs" />
-    <Compile Include="CSharp\CodeIssues\MethodOverloadHidesOptionalParameterIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\NegativeRelationalExpressionIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\ParameterHidesMemberIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\ParameterOnlyAssignedIssueTests.cs" />
@@ -157,8 +156,10 @@
     <Compile Include="CSharp\CSharpAmbienceTests.cs" />
     <Compile Include="CSharp\CodeDomConvertVisitorTests.cs" />
     <Compile Include="CSharp\DepthFirstVisitorTests.cs" />
+    <Compile Include="CSharp\InsertMissingTokensDecoratorTests.cs" />
     <Compile Include="CSharp\InsertParenthesesVisitorTests.cs" />
     <Compile Include="CSharp\CSharpOutputVisitorTests.cs" />
+    <Compile Include="CSharp\Parser\ConsistencyChecker.cs" />
     <Compile Include="CSharp\Parser\Expression\AnonymousTypeCreateExpressionTests.cs" />
     <Compile Include="CSharp\Parser\Expression\ObjectCreateExpressionTests.cs" />
     <Compile Include="CSharp\Parser\Expression\UndocumentedExpressionTests.cs" />

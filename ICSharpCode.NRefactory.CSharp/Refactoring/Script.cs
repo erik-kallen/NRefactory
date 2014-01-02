@@ -25,12 +25,15 @@
 // THE SOFTWARE.
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using ICSharpCode.NRefactory.Editor;
 using ICSharpCode.NRefactory.TypeSystem;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Text;
+using Mono.CSharp;
+using ITypeDefinition = ICSharpCode.NRefactory.TypeSystem.ITypeDefinition;
 
 namespace ICSharpCode.NRefactory.CSharp.Refactoring
 {
@@ -163,18 +166,55 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 
 		public void InsertAfter(AstNode node, AstNode newNode)
 		{
-			var indentOffset = GetCurrentOffset(new TextLocation(node.StartLocation.Line, 1));
-			var output = OutputNode (GetIndentLevelAt (indentOffset), newNode);
-			string text = output.Text;
-			if (!(newNode is Expression || newNode is AstType))
-				text = Options.EolMarker + text;
-			var insertOffset = GetCurrentOffset(node.EndLocation);
-			InsertText(insertOffset, text);
-			output.RegisterTrackedSegments(this, insertOffset);
-			CorrectFormatting (node, newNode);
+            var indentLevel = IndentLevelFor(node);
+            var output = OutputNode(indentLevel, newNode);
+            string text =  PrefixFor(node, newNode) + output.Text;
+
+            var insertOffset = GetCurrentOffset(node.EndLocation);
+            InsertText(insertOffset, text);
+            output.RegisterTrackedSegments(this, insertOffset);
+            CorrectFormatting (node, newNode);
 		}
 
-		public void AddTo(BlockStatement bodyStatement, AstNode newNode)
+	    private int IndentLevelFor(AstNode node)
+	    {
+            if (!DoesInsertingAfterRequireNewline(node))
+	            return 0;
+	        
+            return GetIndentLevelAt(GetCurrentOffset(new TextLocation(node.StartLocation.Line, 1)));
+	    }
+
+	    bool DoesInsertingAfterRequireNewline(AstNode node)
+	    {
+            if (node is Expression)
+                return false;
+
+            if (node is AstType)
+                return false;
+
+	        if (node is ParameterDeclaration)
+	            return false;
+
+	        var token = node as CSharpTokenNode;
+	        if (token != null && token.Role == Roles.LPar)
+	            return false;
+	        
+	        return true;
+	    }
+
+	    private string PrefixFor(AstNode node, AstNode newNode)
+	    {
+	        if (DoesInsertingAfterRequireNewline(node))
+	            return Options.EolMarker;
+
+	        if (newNode is ParameterDeclaration && node is ParameterDeclaration)
+	            //todo: worry about adding characters to the document without matching AstNode's. 
+	            return ", ";
+
+	        return String.Empty;
+	    }
+
+	    public void AddTo(BlockStatement bodyStatement, AstNode newNode)
 		{
 			var startOffset = GetCurrentOffset(bodyStatement.LBraceToken.EndLocation);
 			var output = OutputNode(1 + GetIndentLevelAt(startOffset), newNode, true);
@@ -436,16 +476,24 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			return 0;
 		}
 		
-		sealed class SegmentTrackingOutputFormatter : TextWriterOutputFormatter
+		sealed class SegmentTrackingTokenWriter : TextWriterTokenWriter
 		{
 			internal List<KeyValuePair<AstNode, Segment>> NewSegments = new List<KeyValuePair<AstNode, Segment>>();
 			readonly Stack<int> startOffsets = new Stack<int>();
 			readonly StringWriter stringWriter;
 			
-			public SegmentTrackingOutputFormatter (StringWriter stringWriter)
+			public SegmentTrackingTokenWriter(StringWriter stringWriter)
 				: base(stringWriter)
 			{
 				this.stringWriter = stringWriter;
+			}
+			
+			public override void WriteIdentifier (Identifier identifier)
+			{
+				int startOffset = stringWriter.GetStringBuilder ().Length;
+				int endOffset = startOffset + (identifier.Name ?? "").Length + (identifier.IsVerbatim ? 1 : 0);
+				NewSegments.Add(new KeyValuePair<AstNode, Segment>(identifier, new Segment(startOffset, endOffset)));
+				base.WriteIdentifier (identifier);
 			}
 			
 			public override void StartNode (AstNode node)
@@ -466,7 +514,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		protected NodeOutput OutputNode(int indentLevel, AstNode node, bool startWithNewLine = false)
 		{
 			var stringWriter = new StringWriter ();
-			var formatter = new SegmentTrackingOutputFormatter (stringWriter);
+			var formatter = new SegmentTrackingTokenWriter(stringWriter);
 			formatter.Indentation = indentLevel;
 			formatter.IndentationString = Options.TabsToSpaces ? new string (' ', Options.IndentSize) : "\t";
 			stringWriter.NewLine = Options.EolMarker;

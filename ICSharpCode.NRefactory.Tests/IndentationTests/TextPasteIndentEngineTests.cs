@@ -245,6 +245,15 @@ void Bar ()
 			Assert.AreEqual("\t\tSystem.Console.WriteLine(@\"<evlevlle>\");\n\t\t", text);
 		}
 
+		[Test]
+		public void PasteVerbatimStringBug4()
+		{
+			var indent = CreateEngine("\nclass Foo\n{\n\tvoid Bar ()\n\t{\n$\n\t}\n}");
+			ITextPasteHandler handler = new TextPasteIndentEngine(indent, CreateInvariantOptions (), FormattingOptionsFactory.CreateMono());
+
+			var text = handler.FormatPlainText(indent.Offset, "var str1 = \n@\"hello\";", null);
+			Assert.AreEqual("\t\tvar str1 = \n\t\t\t@\"hello\";", text);
+		}
 
 		[Test]
 		public void TestPasteComments()
@@ -347,6 +356,20 @@ var foo = @""hello$"";
 			ITextPasteHandler handler = new TextPasteIndentEngine(indent, CreateInvariantOptions (), opt);
 			var text = handler.FormatPlainText(indent.Offset, "Hi \" + username;", null);
 			Assert.AreEqual("Hi \"\" + username;", text);
+		}
+
+
+		/// <summary>
+		/// Bug 16415 - Formatter - Copy paste comments 
+		/// </summary>
+		[Test]
+		public void TestBug16415 ()
+		{
+			var opt = FormattingOptionsFactory.CreateMono();
+			var indent = CreateEngine("class Foo\n{\n\tpublic static void Main (string[] args)\n\t{\n\t\tConsole.WriteLine ();$\n\t}\n}\n", opt);
+			ITextPasteHandler handler = new TextPasteIndentEngine(indent, CreateInvariantOptions (), opt);
+			var text = handler.FormatPlainText(indent.Offset, "// Line 1\n// Line 2\n// Line 3", null);
+			Assert.AreEqual("// Line 1\n\t\t// Line 2\n\t\t// Line 3", text);
 		}
 	}
 }
