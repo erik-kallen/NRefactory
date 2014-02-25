@@ -183,6 +183,8 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 								var m = member as IParameterizedMember;
 								if (m != null && m.Parameters.Any(p => p.Name == name.Value))
 									break;
+								if (name.Value == "value" && (member.SymbolKind == SymbolKind.Property || member.SymbolKind == SymbolKind.Indexer || member.SymbolKind == SymbolKind.Event) && el.Name == "paramref")
+									break;
 								AddXmlIssue(name.ValueSegment.Offset - firstline.Length + 1, name.ValueSegment.Length - 2, string.Format(ctx.TranslateString("Parameter '{0}' not found"), name.Value));
 								break;
 							case "exception":
@@ -191,18 +193,15 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 								var cref = el.Attributes.FirstOrDefault(attr => attr.Name == "cref");
 								if (cref == null)
 									break;
-
 								try {
 									var trctx = ctx.Resolver.TypeResolveContext;
 									if (member is IMember)
 										trctx = trctx.WithCurrentTypeDefinition(member.DeclaringTypeDefinition).WithCurrentMember((IMember)member);
 									if (member is ITypeDefinition)
 										trctx = trctx.WithCurrentTypeDefinition((ITypeDefinition)member);
-
 									var state = ctx.Resolver.GetResolverStateBefore(node);
 									if (state.CurrentUsingScope != null)
 										trctx = trctx.WithUsingScope(state.CurrentUsingScope);
-
 									var cdc = new CSharpDocumentationComment (emptySource, trctx);
 									var entity = cdc.ResolveCref(cref.Value);
 
@@ -222,7 +221,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 				storedXmlComment.Clear();
 			}
 
-			protected virtual void VisitXmlChildren(AstNode node)
+			protected virtual void VisitXmlChildren(AstNode node, Action checkDocumentationAction)
 			{
 				AstNode next;
 				var child = node.FirstChild;
@@ -231,8 +230,7 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					child.AcceptVisitor(this);
 					child = next;
 				}
-
-				CheckXmlDoc(node);
+				checkDocumentationAction();
 
 				for (; child != null; child = next) {
 					// Store next to allow the loop to continue
@@ -241,6 +239,11 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					child.AcceptVisitor(this);
 				}
 				InvalideXmlComments();
+			}
+
+			protected virtual void VisitXmlChildren(AstNode node)
+			{
+				VisitXmlChildren(node, () => CheckXmlDoc(node));
 			}
 
 			public override void VisitTypeDeclaration(TypeDeclaration typeDeclaration)
@@ -280,12 +283,20 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 
 			public override void VisitEventDeclaration(EventDeclaration eventDeclaration)
 			{
-				VisitXmlChildren(eventDeclaration);
+				VisitXmlChildren(eventDeclaration, () => {
+					foreach (var e in eventDeclaration.Variables) {
+						CheckXmlDoc(e);
+					}
+				});
 			}
 
 			public override void VisitFieldDeclaration(FieldDeclaration fieldDeclaration)
 			{
-				VisitXmlChildren(fieldDeclaration);
+				VisitXmlChildren(fieldDeclaration, () => {
+					foreach (var e in fieldDeclaration.Variables) {
+						CheckXmlDoc(e);
+					}
+				});
 			}
 
 			public override void VisitIndexerDeclaration(IndexerDeclaration indexerDeclaration)

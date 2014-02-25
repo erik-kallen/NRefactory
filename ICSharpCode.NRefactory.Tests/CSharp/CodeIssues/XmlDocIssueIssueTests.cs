@@ -150,6 +150,63 @@ namespace Foo {
 	}
 }");
 		}
+
+		/// <summary>
+		/// Bug 17729 - Incorrect XML-docs warning about 'value' paramref 
+		/// </summary>
+		[Test]
+		public void TestBug17729 ()
+		{
+			TestWrongContext<XmlDocIssue>(@"
+using System;
+
+class Foo {
+	/// <summary>
+	/// If <paramref name=""value""/> is 0 ...
+	/// </summary>
+	public int Bar { get; set; }
+}
+");
+		}
+
+
+		[Test]
+		public void TestSeeCRefMember ()
+		{
+			TestWrongContext<XmlDocIssue>(@"
+using System;
+
+namespace Foo
+{
+	public interface IGroupingProvider
+	{
+		IGroupingProvider Next { get; set; }
+		
+		/// <summary>
+		/// Occurs when <see cref=""Next""/> changes.
+		/// </summary>
+		event EventHandler<EventArgs> NextChanged;
+	}
+}
+");
+		}
+
+		[Test]
+		public void TestEventComment ()
+		{
+			TestIssue<XmlDocIssue>(@"
+using System;
+
+namespace Foo
+{
+	public interface IGroupingProvider
+	{
+		/// <summa
+		event EventHandler<EventArgs> NextChanged;
+	}
+}
+", 1);
+		}
 	}
 
 

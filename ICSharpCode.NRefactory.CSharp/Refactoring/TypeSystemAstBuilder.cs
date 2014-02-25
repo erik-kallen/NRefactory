@@ -559,6 +559,27 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		#endregion
 		
 		#region Convert Entity
+		public AstNode ConvertSymbol(ISymbol symbol)
+		{
+			if (symbol == null)
+				throw new ArgumentNullException("symbol");
+			switch (symbol.SymbolKind) {
+				case SymbolKind.Namespace:
+					return ConvertNamespaceDeclaration((INamespace)symbol);
+				case SymbolKind.Variable:
+					return ConvertVariable((IVariable)symbol);
+				case SymbolKind.Parameter:
+					return ConvertParameter((IParameter)symbol);
+				case SymbolKind.TypeParameter:
+					return ConvertTypeParameter((ITypeParameter)symbol);
+				default:
+					IEntity entity = symbol as IEntity;
+					if (entity != null)
+						return ConvertEntity(entity);
+					throw new ArgumentException("Invalid value for SymbolKind: " + symbol.SymbolKind);
+			}
+		}
+		
 		public EntityDeclaration ConvertEntity(IEntity entity)
 		{
 			if (entity == null)
@@ -582,6 +603,9 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 					return ConvertConstructor((IMethod)entity);
 				case SymbolKind.Destructor:
 					return ConvertDestructor((IMethod)entity);
+				case SymbolKind.Accessor:
+					IMethod accessor = (IMethod)entity;
+					return ConvertAccessor(accessor, accessor.AccessorOwner != null ? accessor.AccessorOwner.Accessibility : Accessibility.None);
 				default:
 					throw new ArgumentException("Invalid value for SymbolKind: " + entity.SymbolKind);
 			}
@@ -782,6 +806,8 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		{
 			MethodDeclaration decl = new MethodDeclaration();
 			decl.Modifiers = GetMemberModifiers(method);
+			if (method.IsAsync && ShowModifiers)
+				decl.Modifiers |= Modifiers.Async;
 			decl.ReturnType = ConvertType(method.ReturnType);
 			decl.Name = method.Name;
 			
@@ -829,7 +855,8 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		{
 			ConstructorDeclaration decl = new ConstructorDeclaration();
 			decl.Modifiers = GetMemberModifiers(ctor);
-			decl.Name = ctor.DeclaringTypeDefinition.Name;
+			if (ctor.DeclaringTypeDefinition != null)
+				decl.Name = ctor.DeclaringTypeDefinition.Name;
 			foreach (IParameter p in ctor.Parameters) {
 				decl.Parameters.Add(ConvertParameter(p));
 			}
@@ -840,7 +867,8 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 		DestructorDeclaration ConvertDestructor(IMethod dtor)
 		{
 			DestructorDeclaration decl = new DestructorDeclaration();
-			decl.Name = dtor.DeclaringTypeDefinition.Name;
+			if (dtor.DeclaringTypeDefinition != null)
+				decl.Name = dtor.DeclaringTypeDefinition.Name;
 			decl.Body = GenerateBodyBlock();
 			return decl;
 		}
@@ -944,5 +972,10 @@ namespace ICSharpCode.NRefactory.CSharp.Refactoring
 			return decl;
 		}
 		#endregion
+		
+		NamespaceDeclaration ConvertNamespaceDeclaration(INamespace ns)
+		{
+			return new NamespaceDeclaration(ns.FullName);
+		}
 	}
 }

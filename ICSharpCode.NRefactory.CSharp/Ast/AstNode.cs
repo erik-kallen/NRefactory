@@ -59,16 +59,17 @@ namespace ICSharpCode.NRefactory.CSharp
 			
 			public override void AcceptVisitor (IAstVisitor visitor)
 			{
+				visitor.VisitNullNode(this);
 			}
 			
 			public override T AcceptVisitor<T> (IAstVisitor<T> visitor)
 			{
-				return default (T);
+				return visitor.VisitNullNode(this);
 			}
 			
 			public override S AcceptVisitor<T, S> (IAstVisitor<T, S> visitor, T data)
 			{
-				return default (S);
+				return visitor.VisitNullNode(this, data);
 			}
 			
 			protected internal override bool DoMatch (AstNode other, PatternMatching.Match match)
@@ -915,11 +916,17 @@ namespace ICSharpCode.NRefactory.CSharp
 			return this;
 		}
 		
+		/// <summary>
+		/// Returns the root nodes of all subtrees that are fully contained in the specified region.
+		/// </summary>
 		public IEnumerable<AstNode> GetNodesBetween (int startLine, int startColumn, int endLine, int endColumn)
 		{
 			return GetNodesBetween (new TextLocation (startLine, startColumn), new TextLocation (endLine, endColumn));
 		}
 		
+		/// <summary>
+		/// Returns the root nodes of all subtrees that are fully contained between <paramref name="start"/> and <paramref name="end"/> (inclusive).
+		/// </summary>
 		public IEnumerable<AstNode> GetNodesBetween (TextLocation start, TextLocation end)
 		{
 			AstNode node = this;
@@ -928,11 +935,11 @@ namespace ICSharpCode.NRefactory.CSharp
 				if (start <= node.StartLocation && node.EndLocation <= end) {
 					// Remember next before yielding node.
 					// This allows iteration to continue when the caller removes/replaces the node.
-					next = node.NextSibling;
+					next = node.GetNextNode();
 					yield return node;
 				} else {
 					if (node.EndLocation <= start) {
-						next = node.NextSibling;
+						next = node.GetNextNode();
 					} else {
 						next = node.FirstChild;
 					}

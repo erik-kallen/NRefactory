@@ -268,7 +268,7 @@ namespace ICSharpCode.NRefactory.TypeSystem
 			Assert.IsInstanceOf<SpecializedMethod>(method);
 			Assert.IsFalse(method.IsParameterized); // the method itself is not specialized
 			Assert.AreEqual(method.TypeParameters, method.TypeArguments);
-			var methodReference = method.ToMemberReference();
+			var methodReference = method.ToReference();
 			var resolvedMethod = methodReference.Resolve(compilation.TypeResolveContext);
 			Assert.AreEqual(method, resolvedMethod);
 		}
@@ -1084,7 +1084,7 @@ namespace ICSharpCode.NRefactory.TypeSystem
 		{
 			ITypeDefinition type = GetTypeDefinition(typeof(ClassThatImplementsProperty));
 			var prop = type.Properties.Single(p => p.Name == "Prop");
-			var mr = prop.Getter.ToMemberReference();
+			var mr = prop.Getter.ToReference();
 			Assert.AreEqual(prop.Getter, mr.Resolve(compilation.TypeResolveContext));
 		}
 		
@@ -1132,7 +1132,7 @@ namespace ICSharpCode.NRefactory.TypeSystem
 		{
 			ITypeDefinition type = GetTypeDefinition(typeof(ClassThatImplementsPropertyExplicitly));
 			var prop = type.Properties.Single();
-			var mr = prop.Getter.ToMemberReference();
+			var mr = prop.Getter.ToReference();
 			Assert.AreEqual(prop.Getter, mr.Resolve(compilation.TypeResolveContext));
 		}
 		
@@ -1169,7 +1169,7 @@ namespace ICSharpCode.NRefactory.TypeSystem
 			IType type = compilation.FindType(typeof(ExplicitGenericInterfaceImplementationWithUnifiableMethods<int, int>));
 			Assert.AreEqual(2, type.GetMethods(m => m.IsExplicitInterfaceImplementation).Count());
 			foreach (IMethod method in type.GetMethods(m => m.IsExplicitInterfaceImplementation)) {
-				IMethod resolvedMethod = (IMethod)method.ToMemberReference().Resolve(compilation.TypeResolveContext);
+				IMethod resolvedMethod = (IMethod)method.ToReference().Resolve(compilation.TypeResolveContext);
 				Assert.AreEqual(method, resolvedMethod);
 			}
 		}
@@ -1312,25 +1312,24 @@ namespace ICSharpCode.NRefactory.TypeSystem
 		}
 
 		[Test]
-		public unsafe void ConstantFields()
+		public unsafe void ConstantFieldsCreatedWithNew()
 		{
 			ITypeDefinition type = GetTypeDefinition(typeof(ConstantFieldTest));
-			AssertConstantField<byte>(type, "Cb", 42);
-			AssertConstantField<sbyte>(type, "Csb", 42);
-			AssertConstantField<char>(type, "Cc", '\x42');
-			AssertConstantField<short>(type, "Cs", 42);
-			AssertConstantField<ushort>(type, "Cus", 42);
-			AssertConstantField<int>(type, "Ci", 42);
-			AssertConstantField<uint>(type, "Cui", 42);
-			AssertConstantField<long>(type, "Cl", 42);
-			AssertConstantField<ulong>(type, "Cul", 42);
-			AssertConstantField<double>(type, "Cd", 42);
-			AssertConstantField<float>(type, "Cf", 42);
-			AssertConstantField<decimal>(type, "Cm", 42);
-			AssertConstantField<string>(type, "S", "hello, world");
-			AssertConstantField<string>(type, "NullString", null);
+			AssertConstantField<byte>(type, "CNewb", new byte());
+			AssertConstantField<sbyte>(type, "CNewsb", new sbyte());
+			AssertConstantField<char>(type, "CNewc", new char());
+			AssertConstantField<short>(type, "CNews", new short());
+			AssertConstantField<ushort>(type, "CNewus", new ushort());
+			AssertConstantField<int>(type, "CNewi", new int());
+			AssertConstantField<uint>(type, "CNewui", new uint());
+			AssertConstantField<long>(type, "CNewl", new long());
+			AssertConstantField<ulong>(type, "CNewul", new ulong());
+			AssertConstantField<double>(type, "CNewd", new double());
+			AssertConstantField<float>(type, "CNewf", new float());
+			AssertConstantField<decimal>(type, "CNewm", new decimal());
 		}
-		
+
+
 		[Test]
 		public void ConstantFieldsSizeOf()
 		{

@@ -8,7 +8,7 @@
     <RootNamespace>ICSharpCode.NRefactory</RootNamespace>
     <AssemblyName>ICSharpCode.NRefactory.Tests</AssemblyName>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <ProductVersion>10.0.0</ProductVersion>
+    <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <NoStdLib>False</NoStdLib>
@@ -614,6 +614,11 @@
     <Compile Include="CSharp\CodeIssues\RedundantTypeArgumentsOfMethodIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\PossibleMistakenCallToGetTypeIssueTests.cs" />
     <Compile Include="CSharp\CodeIssues\RedundantNotNullAttributeInNonNullableTypeTests.cs" />
+    <Compile Include="CSharp\CodeIssues\CS0618UsageOfObsoleteMemberIssueTests.cs" />
+    <Compile Include="CSharp\CodeIssues\CS0169FieldIsNeverUsedIssueTests.cs" />
+    <Compile Include="FormattingTests\ConstructFixerTests.cs" />
+    <Compile Include="CSharp\CodeIssues\StaticEventSubscriptionIssueTests.cs" />
+    <Compile Include="CSharp\CodeActions\CS1105ExtensionMethodMustBeDeclaredStaticActionTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ICSharpCode.NRefactory.CSharp\ICSharpCode.NRefactory.CSharp.csproj">

@@ -139,6 +139,7 @@ namespace ICSharpCode.NRefactory.CSharp
 									goto case PropertyFormatting.ForceNewLine;
 								nextStatementIndent = " ";
 								VisitBlockWithoutFixingBraces(accessor.Body, policy.IndentBlocks);
+								nextStatementIndent = null;
 								if (!oneLine)
 									ForceSpacesBeforeRemoveNewLines(accessor.Body.RBraceToken, true);
 								break;
@@ -272,6 +273,7 @@ namespace ICSharpCode.NRefactory.CSharp
 					} else {
 						nextStatementIndent = " ";
 						VisitBlockWithoutFixingBraces(eventDeclaration.AddAccessor.Body, policy.IndentBlocks);
+						nextStatementIndent = null;
 					}
 				}
 			}
@@ -286,6 +288,7 @@ namespace ICSharpCode.NRefactory.CSharp
 					} else {
 						nextStatementIndent = " ";
 						VisitBlockWithoutFixingBraces(eventDeclaration.RemoveAccessor.Body, policy.IndentBlocks);
+						nextStatementIndent = null;
 					}
 				}
 			}
@@ -431,16 +434,11 @@ namespace ICSharpCode.NRefactory.CSharp
 
 			var initializer = constructorDeclaration.Initializer;
 			if (!initializer.IsNull) {
-				ForceSpacesBefore(constructorDeclaration.ColonToken, true);
-				ForceSpacesAfter(constructorDeclaration.ColonToken, true);
-				bool popIndent = initializer.StartLocation.Line != constructorDeclaration.ColonToken.StartLocation.Line;
-				if (popIndent) {
-					curIndent.Push(IndentType.Block);
-					FixIndentation(initializer);
-				}
+				curIndent.Push(IndentType.Block);
+				PlaceOnNewLine(policy.NewLineBeforeConstructorInitializerColon, constructorDeclaration.ColonToken);
+				PlaceOnNewLine(policy.NewLineAfterConstructorInitializerColon, initializer);
 				initializer.AcceptVisitor(this);
-				if (popIndent)
-					curIndent.Pop();
+				curIndent.Pop();
 			}
 			if (!constructorDeclaration.Body.IsNull) {
 				FixOpenBrace(policy.ConstructorBraceStyle, constructorDeclaration.Body.LBraceToken);

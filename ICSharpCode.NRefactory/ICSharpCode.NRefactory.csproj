@@ -150,6 +150,7 @@
     <Compile Include="TypeSystem\DomRegion.cs" />
     <Compile Include="TypeSystem\EntityType.cs" />
     <Compile Include="TypeSystem\IAssemblyResource.cs" />
+    <Compile Include="TypeSystem\ICodeContext.cs" />
     <Compile Include="TypeSystem\Implementation\BlobReader.cs" />
     <Compile Include="TypeSystem\Implementation\DefaultVariable.cs" />
     <Compile Include="TypeSystem\Implementation\ResolvedAttributeBlob.cs" />
@@ -157,6 +158,7 @@
     <Compile Include="TypeSystem\Implementation\UnresolvedSecurityDeclarationBlob.cs" />
     <Compile Include="TypeSystem\ISymbol.cs" />
     <Compile Include="TypeSystem\LinkedResource.cs" />
+    <Compile Include="TypeSystem\TaskType.cs" />
     <Compile Include="TypeSystem\TypeParameterSubstitution.cs" />
     <Compile Include="TypeSystem\TypeSystemExtensions.cs" />
     <Compile Include="TypeSystem\FullTypeName.cs" />

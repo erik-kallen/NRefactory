@@ -334,6 +334,11 @@ namespace ICSharpCode.NRefactory.CSharp.TypeSystem
 					return assembly.GetTypeDefinition(key);
 				}
 			}
+
+			public ISymbolReference ToReference()
+			{
+				return new NamespaceReference(new DefaultAssemblyReference(assembly.AssemblyName), fullName);
+			}
 		}
 	}
 }

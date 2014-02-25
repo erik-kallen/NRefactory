@@ -2468,12 +2468,14 @@ namespace Mono.CSharp
 			int length = TokenizePreprocessorIdentifier (out c, out startCol, out endLine, out endCol);
 			#if FULL_AST
 			var pragmaDirective = sbag.GetPragmaPreProcessorDirective();
-			pragmaDirective.WarningColumn = startCol;
+			if (pragmaDirective != null)
+				pragmaDirective.WarningColumn = startCol;
 			#endif
 			if (length == pragma_warning.Length && IsTokenIdentifierEqual (pragma_warning)) {
 				length = TokenizePreprocessorIdentifier (out c, out startCol, out endLine, out endCol);
 				#if FULL_AST
-				pragmaDirective.DisableRestoreColumn = startCol;
+				if (pragmaDirective != null)
+					pragmaDirective.DisableRestoreColumn = startCol;
 				#endif
 
 				//
@@ -2483,7 +2485,8 @@ namespace Mono.CSharp
 				if (length == pragma_warning_disable.Length) {
 					bool disable = IsTokenIdentifierEqual (pragma_warning_disable);
 					#if FULL_AST
-					pragmaDirective.Disalbe = disable;
+					if (pragmaDirective != null)
+						pragmaDirective.Disalbe = disable;
 					#endif
 					if (disable || IsTokenIdentifierEqual (pragma_warning_restore)) {
 						// skip over white space
@@ -2518,7 +2521,8 @@ namespace Mono.CSharp
 								if (code > 0) {
 									#if FULL_AST
 									var literal = new IntConstant(context.BuiltinTypes, code, startLoc);
-									pragmaDirective.Codes.Add (literal);
+									if (pragmaDirective != null)
+										pragmaDirective.Codes.Add (literal);
 								//	literal.ParsedValue = reader.ReadChars (read_start, reader.Position + 1);
 									#endif
 									if (disable) {
@@ -2541,6 +2545,7 @@ namespace Mono.CSharp
 
 				return;
 			}
+
 
 			//
 			// #pragma checksum
