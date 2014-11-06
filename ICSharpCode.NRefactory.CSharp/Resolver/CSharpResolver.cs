@@ -643,8 +643,7 @@ namespace ICSharpCode.NRefactory.CSharp.Resolver
 				lhs = UnaryNumericPromotion(UnaryOperatorType.Plus, ref lhsType, isNullable, lhs);
 				rhs = UnaryNumericPromotion(UnaryOperatorType.Plus, ref rhsType, isNullable, rhs);
 			} else {
-				bool allowNullableConstants = op == BinaryOperatorType.Equality || op == BinaryOperatorType.InEquality;
-				if (!BinaryNumericPromotion(isNullable, ref lhs, ref rhs, allowNullableConstants))
+				if (!BinaryNumericPromotion(isNullable, ref lhs, ref rhs, false))
 					return new ErrorResolveResult(lhs.Type);
 			}
 			// re-read underlying types after numeric promotion
